@@ -1,187 +1,90 @@
-# 📱 TodoList Flutter - EFREI M2
-> **Projet Flutter** - Jérôme Commaret - Septembre 2025
+# EFREI TodoList - Flutter Web App
 
-## 🎯 Mission du projet
+Application TodoList développée en Flutter pour le cours M2 EFREI avec le professeur Jérôme Commaret.
 
-Créer une **application TodoList complète** avec authentification et base de données Firebase/Firestore.
+## 🎯 Objectifs pédagogiques
 
-## 🏆 Barème d'évaluation (20 points)
+- Développement d'une application Flutter Web
+- Intégration Firebase (Authentication + Firestore)
+- Gestion d'état avec Provider
+- Architecture MVVM
+- Git workflow avec branches
 
-### 📊 Répartition des points
+## 🚀 Démarrage rapide
 
-| **Critère** | **Points** | **Détail** |
-|-------------|------------|------------|
-| 🔧 **Technique** | **10 pts** |  |
-| └ Utilisation professionnelle de Git | 2 | Workflow avec branches (dev/staging/main) |
-| └ Propreté du code | 2 | Code clean, bien organisé |
-| └ Application fonctionnelle | 4 | Toutes les fonctionnalités opérationnelles |
-| └ Esthétique de l'application | 4 | Design soigné, UX/UI réussie |
-| └ Fonctionnalités bonus | 2 | Features supplémentaires créatives |
-| 🎤 **Présentation** | **6 pts** |  |
-| └ Expression orale | 2 | Clarté, maîtrise technique |
-| └ Slides de présentation | 2 | Support visuel professionnel |
-| └ Démonstration live | 2 | App fonctionnelle en direct |
+### Prérequis
+- Flutter SDK 3.35.2+
+- Git
+- Accès au projet Firebase `taskip-1`
 
-## ✅ Fonctionnalités obligatoires
-
-### 🔐 **Authentification**
-- Inscription utilisateur
-- Connexion/Déconnexion
-- Gestion des sessions
-
-### 📝 **TodoList**
-- Créer des tâches
-- Modifier des tâches
-- Supprimer des tâches
-- Marquer comme terminé/non terminé
-- Persistance des données
-
-### 🔥 **Firebase/Firestore**
-- Base de données cloud
-- Synchronisation temps réel
-- Gestion des utilisateurs
-
-## 🛠️ Stack technique imposée
-
-### **Langage & Framework**
-- ✅ **Dart** + **Flutter**
-- ✅ **Material Design** (interface)
-
-### **Gestion d'état** (au choix)
-- 🟢 **Provider** (recommandé - simple)
-- 🔶 **BLoC** (complexe mais propre)
-- 🔵 **MobX** (réactif)
-
-### **Navigation**
-- ✅ Navigation Flutter standard
-- 🎯 **GoRouter** (bonus)
-
-### **Backend & Données**
-- ✅ **Firebase Core**
-- ✅ **Firebase Auth**
-- ✅ **Cloud Firestore**
-
-### **Stockage local** (optionnel)
-- SharedPreferences (paramètres)
-- SQLite/Hive (cache offline)
-
-## 📁 Architecture recommandée
-
-```
-lib/
-├── main.dart                 # Point d'entrée
-├── models/                   # Modèles de données
-│   ├── todo.dart
-│   └── user.dart
-├── providers/                # Gestion d'état
-│   ├── auth_provider.dart
-│   └── todo_provider.dart
-├── screens/                  # Écrans
-│   ├── auth/
-│   │   ├── login_screen.dart
-│   │   └── register_screen.dart
-│   ├── home_screen.dart
-│   └── todo_screen.dart
-├── widgets/                  # Composants réutilisables
-├── services/                 # Services Firebase
-└── utils/                    # Utilitaires
-```
-
-## 🚨 Exigences Git **OBLIGATOIRES**
-
-### **Structure des branches**
-```
-main (production)    ← NE JAMAIS TRAVAILLER DIRECTEMENT
-  ↑
-staging (intégration) ← Tests, tout fonctionne
-  ↑  
-dev (développement)   ← Branche principale de travail
-  ↑
-feature/xxx          ← Vos branches de fonctionnalités
-```
-
-### **Workflow imposé**
-1. 🔄 Créer les branches `dev` et `staging`
-2. 🌿 Créer vos branches `feature/xxx` depuis `dev`
-3. ⬆️ Merger dans `dev` dès que possible
-4. 🧪 Tester sur `staging` régulièrement
-5. 🚀 Merger sur `main` uniquement quand tout fonctionne
-
-### **⚠️ Contrôles du professeur**
-- Le prof peut contrôler **à tout moment**
-- `staging` doit **TOUJOURS** fonctionner
-- Progression **cohérente et régulière**
-- Possible création d'**issues GitHub**
-
-## 👥 Organisation équipe
-
-### **Constitution des groupes**
-- 📧 **Max 4 personnes** par groupe
-- 📧 Envoyer composition à : `jerome.commaret@intervenants.efrei.net`
-- 📧 GitHub du prof : `jcommaret`
-
-### **Livrables attendus**
-- Repository GitHub public
-- README complet
-- Application fonctionnelle
-- Présentation (slides)
-- Démonstration live
-
-## 🧪 Tests (bonus)
-
-### **Types de tests recommandés**
-- **Unit Tests** : logique métier
-- **Widget Tests** : interface utilisateur  
-- **Integration Tests** : end-to-end
-
-### **Packages utiles**
-```yaml
-dev_dependencies:
-  flutter_test:
-  mockito: ^5.4.2
-  integration_test:
-```
-
-## 🚀 Déploiement (bonus)
-
-### **Plateformes possibles**
-- 📱 **Android** (APK/Bundle)
-- 🍎 **iOS** (TestFlight/App Store)
-- 🌐 **Web** (Firebase Hosting)
-
-## 📚 Ressources clés
-
-### **Documentation officielle**
-- [Flutter Docs](https://docs.flutter.dev/)
-- [Firebase for Flutter](https://firebase.flutter.dev/)
-- [Provider Package](https://pub.dev/packages/provider)
-
-### **Installation**
-- [Guide d'installation Flutter](https://docs.flutter.dev/get-started/install)
-
-## 🎯 Conseils pour réussir
-
-1. **🏃‍♂️ Commencer simple** : TodoList basique puis ajouter les features
-2. **🔄 Merger souvent** : Éviter les gros conflits
-3. **🎨 Soigner le design** : 4 points sur l'esthétique !
-4. **🧪 Tester régulièrement** : Sur `staging` 
-5. **📖 Documenter** : README et commentaires
-6. **💡 Être créatif** : Fonctionnalités bonus appréciées
-
----
-
-## 🚀 Getting Started
+### Installation pour l'équipe
 
 ```bash
-# Cloner le projet
+# 1. Cloner le projet
 git clone https://github.com/Quanghng/efrei-flutter-todolist.git
 cd efrei-flutter-todolist
 
-# Installer les dépendances
+# 2. Installer les dépendances
 flutter pub get
 
-# Lancer l'application
-flutter run
+# 3. Lancer l'application
+flutter run -d web-server
 ```
 
-**🎓 Bon développement !**
+### Accès Firebase
+
+**Important** : Demander l'ajout de votre email Google au projet Firebase `taskip-1`.
+
+Voir le fichier [FIREBASE_SETUP.md](FIREBASE_SETUP.md) pour les détails complets.
+
+## 📱 Fonctionnalités
+
+- ✅ Authentification (inscription/connexion)
+- ✅ Gestion des todos (CRUD)
+- ✅ Priorités et filtres
+- ✅ Synchronisation temps réel
+- ✅ Interface responsive Material Design
+
+## 🏗️ Architecture
+
+```
+lib/
+├── main.dart                 # Point d'entrée + Config Firebase
+├── models/
+│   └── todo.dart            # Modèle de données Todo
+├── providers/
+│   ├── auth_provider.dart   # Gestion authentification
+│   └── todo_provider.dart   # Gestion des todos
+└── screens/
+    ├── auth/
+    │   ├── login_screen.dart
+    │   └── register_screen.dart
+    └── home_screen.dart     # Interface principale
+```
+
+## 🔧 Technologies utilisées
+
+- **Flutter Web** : Framework principal
+- **Firebase Auth** : Authentification utilisateur
+- **Cloud Firestore** : Base de données NoSQL
+- **Provider** : Gestion d'état
+- **Material Design** : Interface utilisateur
+
+## 📋 Workflow Git
+
+```bash
+# Branches principales
+main       # Production
+staging    # Pré-production  
+dev        # Développement
+feature/*  # Fonctionnalités
+
+# Workflow
+git checkout dev
+git checkout -b feature/ma-fonctionnalite
+# ... développement ...
+git add .
+git commit -m "feat: ma nouvelle fonctionnalité"
+git push origin feature/ma-fonctionnalite
+# ... Pull Request vers dev ...
+```
