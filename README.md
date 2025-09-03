@@ -36,10 +36,15 @@ git pull origin main
 git merge nom-de-votre-branche
 ```
 
-### 5. Nettoyer (optionnel)
+### 5. Nettoyer (recommandé)
 ```bash
+# Supprimer la branche locale
 git branch -d nom-de-votre-branche
+
+# Supprimer la branche distante (sur GitHub)
+git push origin --delete nom-de-votre-branche
 ```
+💡 **Important :** Cette étape évite d'accumuler des branches inutiles
 
 ## ⚠️ En cas de conflits
 1. Résolvez les conflits dans votre éditeur / voir avec autre membre du groupe
