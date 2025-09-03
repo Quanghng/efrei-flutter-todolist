@@ -20,7 +20,7 @@ class TodoProvider with ChangeNotifier {
   int get totalTodos => _todos.length;
   int get completedCount => completedTodos.length;
   int get pendingCount => pendingTodos.length;
-
+  
   // Écouter les changements en temps réel
   void startListening() {
     final user = _auth.currentUser;
@@ -61,7 +61,7 @@ class TodoProvider with ChangeNotifier {
   }
 
   // Ajouter un todo
-  Future<bool> addTodo(String title, String description) async {
+  Future<bool> addTodo(String title, String description, [String priority = 'moyen']) async {
     final user = _auth.currentUser;
     if (user == null) {
       _setError('Utilisateur non connecté');
@@ -80,6 +80,7 @@ class TodoProvider with ChangeNotifier {
         isCompleted: false,
         createdAt: DateTime.now(),
         userId: user.uid,
+        priority: priority,
       );
 
       print('TodoProvider: Ajout du todo ${todoId} pour l\'utilisateur ${user.uid}');
