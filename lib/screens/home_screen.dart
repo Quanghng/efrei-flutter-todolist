@@ -28,7 +28,7 @@ enum Priority {
 }
 
 enum SortOption {
-  dateDesc('Date (récent → ancien)', 'date', true),
+  dateDesc('Date (récent → ancien)', 'date', true, Icons.schedule),
   dateAsc('Date (ancien → récent)', 'date', false, Icons.schedule_outlined),
   priorityDesc('Priorité (fort → faible)', 'priority', true, Icons.priority_high),
   priorityAsc('Priorité (faible → fort)', 'priority', false, Icons.low_priority);
