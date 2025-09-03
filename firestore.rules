@@ -1,15 +1,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Règle pour les todos : chaque utilisateur ne peut accéder qu'à ses propres todos
-    match /todos/{userId} {
-      // Permettre l'accès seulement si l'utilisateur est authentifié et correspond à l'userId
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // Règles pour la collection todos (structure plate)
+    match /todos/{todoId} {
+      // Permettre la lecture et l'écriture seulement si l'utilisateur est authentifié
+      // et si le todo appartient à l'utilisateur connecté
+      allow read, write: if request.auth != null 
+        && resource.data.userId == request.auth.uid;
       
-      // Règles pour les sous-collections de todos
-      match /todos/{todoId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
+      // Permettre la création si l'utilisateur est authentifié
+      // et si le userId dans le document correspond à l'utilisateur connecté
+      allow create: if request.auth != null 
+        && request.resource.data.userId == request.auth.uid;
     }
     
     // Règle pour les métadonnées utilisateur (optionnel)

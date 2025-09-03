@@ -24,19 +24,32 @@ class TodoProvider with ChangeNotifier {
   // Écouter les changements en temps réel
   void startListening() {
     final user = _auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      print('TodoProvider: Aucun utilisateur connecté');
+      return;
+    }
+
+    print('TodoProvider: Début de l\'écoute pour l\'utilisateur ${user.uid}');
 
     _firestore
         .collection('todos')
         .where('userId', isEqualTo: user.uid)
-        .orderBy('createdAt', descending: true)
+        // Temporairement commenté en attendant la création de l'index
+        // .orderBy('createdAt', descending: true)
         .snapshots()
         .listen((snapshot) {
-      _todos = snapshot.docs.map((doc) {
+      print('TodoProvider: Reçu ${snapshot.docs.length} todos');
+      var todosList = snapshot.docs.map((doc) {
+        print('TodoProvider: Todo reçu - ${doc.id}: ${doc.data()}');
         return Todo.fromMap(doc.data());
       }).toList();
+      
+      // Tri côté client en attendant l'index
+      todosList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      _todos = todosList;
       notifyListeners();
     }, onError: (error) {
+      print('TodoProvider: Erreur lors de l\'écoute - $error');
       _setError('Erreur lors du chargement des todos: $error');
     });
   }
@@ -69,11 +82,16 @@ class TodoProvider with ChangeNotifier {
         userId: user.uid,
       );
 
+      print('TodoProvider: Ajout du todo ${todoId} pour l\'utilisateur ${user.uid}');
+      print('TodoProvider: Données du todo - ${todo.toMap()}');
+
       await _firestore.collection('todos').doc(todoId).set(todo.toMap());
 
+      print('TodoProvider: Todo ajouté avec succès');
       _setLoading(false);
       return true;
     } catch (e) {
+      print('TodoProvider: Erreur lors de l\'ajout - $e');
       _setLoading(false);
       _setError('Erreur lors de l\'ajout: $e');
       return false;
