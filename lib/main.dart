@@ -12,7 +12,7 @@ import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialiser Firebase
   await Firebase.initializeApp(
     options: const FirebaseOptions(
@@ -24,7 +24,7 @@ void main() async {
       appId: "1:540064083426:web:0b57a3c595b76cabe3ddbb",
     ),
   );
-  
+
   runApp(const TodoApp());
 }
 
@@ -39,7 +39,7 @@ class TodoApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TodoProvider()),
       ],
       child: MaterialApp(
-        title: 'EFREI TodoList',
+        title: 'EFREI Taskip',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           primarySwatch: Colors.blue,
@@ -51,9 +51,9 @@ class TodoApp extends StatelessWidget {
         ),
         home: Consumer<AuthProvider>(
           builder: (context, authProvider, _) {
-            return authProvider.isAuthenticated 
-              ? const HomeScreen()
-              : const LoginScreen();
+            return authProvider.isAuthenticated
+                ? const HomeScreen()
+                : const LoginScreen();
           },
         ),
       ),

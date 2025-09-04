@@ -1,4 +1,4 @@
-# EFREI TodoList - Flutter Web App
+# EFREI Taskip - Flutter Web App
 
 Application TodoList développée en Flutter pour le cours M2 EFREI avec le professeur Jérôme Commaret.
 
