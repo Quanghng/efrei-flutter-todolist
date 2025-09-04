@@ -555,42 +555,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                todo.title,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  decoration: todo.isCompleted
-                      ? TextDecoration.lineThrough
-                      : null,
-                  color: todo.isCompleted ? Colors.grey : null,
-                ),
-              ),
-            ),
-            // Priorité
-            Align(
-              alignment: Alignment.centerRight,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: priority.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: priority.color.withOpacity(0.3)),
-                ),
-                child: Text(
-                  priority.label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: priority.color,
-                  ),
-                ),
-              ),
-            ),
-          ],
+        title: Text(
+          todo.title,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
+            color: todo.isCompleted ? Colors.grey : null,
+          ),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -648,37 +620,59 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        trailing: PopupMenuButton<String>(
-          onSelected: (value) {
-            switch (value) {
-              case 'edit':
-                _showEditTodoDialog(todo, todoProvider);
-                break;
-              case 'delete':
-                _showDeleteDialog(todo.id, todoProvider);
-                break;
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'edit',
-              child: Row(
-                children: [
-                  Icon(Icons.edit, color: Colors.blue),
-                  SizedBox(width: 8),
-                  Text('Modifier'),
-                ],
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Priorité
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: priority.color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: priority.color.withOpacity(0.3)),
+              ),
+              child: Text(
+                priority.label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: priority.color,
+                ),
               ),
             ),
-            const PopupMenuItem(
-              value: 'delete',
-              child: Row(
-                children: [
-                  Icon(Icons.delete, color: Colors.red),
-                  SizedBox(width: 8),
-                  Text('Supprimer'),
-                ],
-              ),
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                switch (value) {
+                  case 'edit':
+                    _showEditTodoDialog(todo, todoProvider);
+                    break;
+                  case 'delete':
+                    _showDeleteDialog(todo.id, todoProvider);
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit, color: Colors.blue),
+                      SizedBox(width: 8),
+                      Text('Modifier'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Supprimer'),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -825,6 +819,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showEditTodoDialog(todo, TodoProvider todoProvider) {
     final titleController = TextEditingController(text: todo.title);
     final descriptionController = TextEditingController(text: todo.description);
+    Priority selectedPriority = Priority.fromString(todo.priority);
     DateTime? selectedDate = todo.dueDate;
 
     showDialog(
@@ -852,6 +847,51 @@ class _HomeScreenState extends State<HomeScreen> {
                     border: OutlineInputBorder(),
                   ),
                   maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Priorité *',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: Priority.values.map((priority) {
+                        return Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: ChoiceChip(
+                              label: Text(
+                                priority.label,
+                                style: TextStyle(
+                                  color: selectedPriority == priority
+                                      ? Colors.white
+                                      : priority.color,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              selected: selectedPriority == priority,
+                              selectedColor: priority.color,
+                              backgroundColor: priority.color.withOpacity(0.1),
+                              showCheckmark: false,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setDialogState(() {
+                                    selectedPriority = priority;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 // Sélecteur de date d'échéance
@@ -898,6 +938,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       title: titleController.text.trim(),
                       description: descriptionController.text.trim(),
                       dueDate: selectedDate,
+                      priority: selectedPriority,
                     );
                     todoProvider.updateTodo(updatedTodo);
                     Navigator.pop(context);
