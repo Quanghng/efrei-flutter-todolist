@@ -520,6 +520,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTodoItem(todo, TodoProvider todoProvider) {
     final priority = Priority.fromString(todo.priority ?? 'moyen');
 
+    final bool isOverdue =
+        todo.dueDate != null &&
+        !todo.isCompleted &&
+        todo.dueDate!.isBefore(
+          DateTime.now().subtract(const Duration(days: 1)),
+        );
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
@@ -563,6 +570,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+            // Priorité
             Align(
               alignment: Alignment.centerRight,
               child: Container(
@@ -600,9 +608,43 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
             const SizedBox(height: 8),
-            Text(
-              _formatDate(todo.createdAt),
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            // Due date
+            if (todo.dueDate != null) ...[
+              Row(
+                children: [
+                  Icon(
+                    Icons.alarm,
+                    color: isOverdue ? Colors.red : Colors.grey.shade600,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Échéance: ${_formatDate(todo.dueDate!)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isOverdue ? Colors.red : Colors.grey.shade600,
+                      fontWeight: isOverdue
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+            ],
+            Row(
+              children: [
+                Icon(
+                  Icons.calendar_today,
+                  color: Colors.grey.shade600,
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Crée: ${_formatDate(todo.createdAt)}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+              ],
             ),
           ],
         ),
@@ -645,13 +687,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} à ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    return '${date.day}/${date.month}/${date.year}';
   }
 
   void _showAddTodoDialog() {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
     Priority selectedPriority = Priority.moyen;
+    DateTime? selectedDate;
 
     showDialog(
       context: context,
@@ -706,6 +749,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             selected: selectedPriority == priority,
                             selectedColor: priority.color,
                             backgroundColor: priority.color.withOpacity(0.1),
+                            showCheckmark: false,
                             onSelected: (selected) {
                               if (selected) {
                                 setDialogState(() {
@@ -717,6 +761,36 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       );
                     }).toList(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              //Sélecteur de date d'échéance
+              Row(
+                children: [
+                  Text(
+                    selectedDate == null
+                        ? 'Date d\'échéance'
+                        : 'Échéance: ${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(width: 50),
+                  const Icon(Icons.calendar_today),
+                  TextButton(
+                    onPressed: () async {
+                      final DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate ?? DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2101),
+                      );
+                      if (picked != null && picked != selectedDate) {
+                        setDialogState(() {
+                          selectedDate = picked;
+                        });
+                      }
+                    },
+                    child: const Text('Choisir'),
                   ),
                 ],
               ),
@@ -734,6 +808,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   context.read<TodoProvider>().addTodo(
                     titleController.text.trim(),
                     descriptionController.text.trim(),
+                    selectedDate,
                     selectedPriority.label,
                   );
                   Navigator.pop(context);
@@ -750,52 +825,89 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showEditTodoDialog(todo, TodoProvider todoProvider) {
     final titleController = TextEditingController(text: todo.title);
     final descriptionController = TextEditingController(text: todo.description);
+    DateTime? selectedDate = todo.dueDate;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Modifier la tâche'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(
-                labelText: 'Titre *',
-                border: OutlineInputBorder(),
-              ),
-              autofocus: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Modifier la tâche'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Titre *',
+                    border: OutlineInputBorder(),
+                  ),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description (optionnel)',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                // Sélecteur de date d'échéance
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        selectedDate == null
+                            ? 'Date d\'échéance'
+                            : 'Échéance: ${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        final DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate ?? DateTime.now(),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(2101),
+                        );
+                        if (picked != null && picked != selectedDate) {
+                          setDialogState(() {
+                            selectedDate = picked;
+                          });
+                        }
+                      },
+                      child: const Text('Modifier'),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description (optionnel)',
-                border: OutlineInputBorder(),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Annuler'),
               ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (titleController.text.trim().isNotEmpty) {
-                final updatedTodo = todo.copyWith(
-                  title: titleController.text.trim(),
-                  description: descriptionController.text.trim(),
-                );
-                todoProvider.updateTodo(updatedTodo);
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Modifier'),
-          ),
-        ],
+              ElevatedButton(
+                onPressed: () {
+                  if (titleController.text.trim().isNotEmpty) {
+                    final updatedTodo = todo.copyWith(
+                      title: titleController.text.trim(),
+                      description: descriptionController.text.trim(),
+                      dueDate: selectedDate,
+                    );
+                    todoProvider.updateTodo(updatedTodo);
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text('Modifier'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

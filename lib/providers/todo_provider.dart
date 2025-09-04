@@ -6,21 +6,23 @@ import '../models/todo.dart';
 class TodoProvider with ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  
+
   List<Todo> _todos = [];
   bool _isLoading = false;
   String? _errorMessage;
 
   // Getters
   List<Todo> get todos => _todos;
-  List<Todo> get completedTodos => _todos.where((todo) => todo.isCompleted).toList();
-  List<Todo> get pendingTodos => _todos.where((todo) => !todo.isCompleted).toList();
+  List<Todo> get completedTodos =>
+      _todos.where((todo) => todo.isCompleted).toList();
+  List<Todo> get pendingTodos =>
+      _todos.where((todo) => !todo.isCompleted).toList();
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   int get totalTodos => _todos.length;
   int get completedCount => completedTodos.length;
   int get pendingCount => pendingTodos.length;
-  
+
   // Écouter les changements en temps réel
   void startListening() {
     final user = _auth.currentUser;
@@ -37,21 +39,24 @@ class TodoProvider with ChangeNotifier {
         // Temporairement commenté en attendant la création de l'index
         // .orderBy('createdAt', descending: true)
         .snapshots()
-        .listen((snapshot) {
-      print('TodoProvider: Reçu ${snapshot.docs.length} todos');
-      var todosList = snapshot.docs.map((doc) {
-        print('TodoProvider: Todo reçu - ${doc.id}: ${doc.data()}');
-        return Todo.fromMap(doc.data());
-      }).toList();
-      
-      // Tri côté client en attendant l'index
-      todosList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      _todos = todosList;
-      notifyListeners();
-    }, onError: (error) {
-      print('TodoProvider: Erreur lors de l\'écoute - $error');
-      _setError('Erreur lors du chargement des todos: $error');
-    });
+        .listen(
+          (snapshot) {
+            print('TodoProvider: Reçu ${snapshot.docs.length} todos');
+            var todosList = snapshot.docs.map((doc) {
+              print('TodoProvider: Todo reçu - ${doc.id}: ${doc.data()}');
+              return Todo.fromMap(doc.data());
+            }).toList();
+
+            // Tri côté client en attendant l'index
+            todosList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            _todos = todosList;
+            notifyListeners();
+          },
+          onError: (error) {
+            print('TodoProvider: Erreur lors de l\'écoute - $error');
+            _setError('Erreur lors du chargement des todos: $error');
+          },
+        );
   }
 
   // Arrêter l'écoute
@@ -61,7 +66,12 @@ class TodoProvider with ChangeNotifier {
   }
 
   // Ajouter un todo
-  Future<bool> addTodo(String title, String description, [String priority = 'moyen']) async {
+  Future<bool> addTodo(
+    String title,
+    String description,
+    DateTime? dueDate, [
+    String priority = 'moyen',
+  ]) async {
     final user = _auth.currentUser;
     if (user == null) {
       _setError('Utilisateur non connecté');
@@ -81,9 +91,12 @@ class TodoProvider with ChangeNotifier {
         createdAt: DateTime.now(),
         userId: user.uid,
         priority: priority,
+        dueDate: dueDate,
       );
 
-      print('TodoProvider: Ajout du todo ${todoId} pour l\'utilisateur ${user.uid}');
+      print(
+        'TodoProvider: Ajout du todo ${todoId} pour l\'utilisateur ${user.uid}',
+      );
       print('TodoProvider: Données du todo - ${todo.toMap()}');
 
       await _firestore.collection('todos').doc(todoId).set(todo.toMap());
@@ -176,10 +189,10 @@ class TodoProvider with ChangeNotifier {
   // Rechercher des todos
   List<Todo> searchTodos(String query) {
     if (query.isEmpty) return _todos;
-    
+
     return _todos.where((todo) {
       return todo.title.toLowerCase().contains(query.toLowerCase()) ||
-             todo.description.toLowerCase().contains(query.toLowerCase());
+          todo.description.toLowerCase().contains(query.toLowerCase());
     }).toList();
   }
 
@@ -209,7 +222,9 @@ class TodoProvider with ChangeNotifier {
       'total': totalTodos,
       'completed': completedCount,
       'pending': pendingCount,
-      'completionRate': totalTodos > 0 ? (completedCount / totalTodos * 100).round() : 0,
+      'completionRate': totalTodos > 0
+          ? (completedCount / totalTodos * 100).round()
+          : 0,
     };
   }
 }

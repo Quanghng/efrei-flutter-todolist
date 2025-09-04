@@ -7,6 +7,7 @@ class Todo {
   final DateTime? completedAt;
   final String userId;
   final String priority;
+  final DateTime? dueDate;
 
   Todo({
     required this.id,
@@ -17,6 +18,7 @@ class Todo {
     this.completedAt,
     required this.userId,
     required this.priority,
+    this.dueDate,
   });
 
   // Convertir en Map pour Firestore
@@ -30,10 +32,11 @@ class Todo {
       'completedAt': completedAt?.millisecondsSinceEpoch,
       'userId': userId,
       'priority': priority,
+      'dueDate': dueDate?.millisecondsSinceEpoch,
     };
   }
 
-  // Créer depuis Map (Firestore) 
+  // Créer depuis Map (Firestore)
   factory Todo.fromMap(Map<String, dynamic> map) {
     return Todo(
       id: map['id'] ?? '',
@@ -46,6 +49,9 @@ class Todo {
           : null,
       userId: map['userId'] ?? '',
       priority: map['priority'] ?? 'moyen',
+      dueDate: map['dueDate'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['dueDate'])
+          : null,
     );
   }
 
@@ -59,6 +65,7 @@ class Todo {
     DateTime? completedAt,
     String? userId,
     String? priority,
+    DateTime? dueDate,
   }) {
     return Todo(
       id: id ?? this.id,
@@ -69,12 +76,13 @@ class Todo {
       completedAt: completedAt ?? this.completedAt,
       userId: userId ?? this.userId,
       priority: priority ?? this.priority,
+      dueDate: dueDate ?? this.dueDate,
     );
   }
 
   @override
   String toString() {
-    return 'Todo(id: $id, title: $title, isCompleted: $isCompleted, priority: $priority)';
+    return 'Todo(id: $id, title: $title, isCompleted: $isCompleted, priority: $priority, dueDate: $dueDate)';
   }
 
   @override
