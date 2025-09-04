@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 // Providers
 import 'providers/auth_provider.dart';
 import 'providers/todo_provider.dart';
+import 'providers/theme_provider.dart';
 
 // Screens
 import 'screens/auth/login_screen.dart';
@@ -37,25 +38,37 @@ class TodoApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => TodoProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
-      child: MaterialApp(
-        title: 'EFREI Taskip',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.blue,
-            brightness: Brightness.light,
-          ),
-        ),
-        home: Consumer<AuthProvider>(
-          builder: (context, authProvider, _) {
-            return authProvider.isAuthenticated
-                ? const HomeScreen()
-                : const LoginScreen();
-          },
-        ),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp(
+            title: 'EFREI Taskip',
+            debugShowCheckedModeBanner: false,
+            themeMode: themeProvider.mode,
+            theme: ThemeData(
+              useMaterial3: true,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: Colors.blue,
+                brightness: Brightness.light,
+              ),
+            ),
+            darkTheme: ThemeData(
+              useMaterial3: true,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: Colors.blue,
+                brightness: Brightness.dark,
+              ),
+            ),
+            home: Consumer<AuthProvider>(
+              builder: (context, authProvider, _) {
+                return authProvider.isAuthenticated 
+                    ? const HomeScreen()
+                    : const LoginScreen();
+              },
+            ),
+          );
+        },
       ),
     );
   }

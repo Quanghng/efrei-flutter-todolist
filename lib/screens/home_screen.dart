@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/todo_provider.dart';
+import '../providers/theme_provider.dart';
 
 enum Priority {
   faible(1, 'Faible', Colors.green),
@@ -181,50 +182,59 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: Colors.blue.shade600,
             foregroundColor: Colors.white,
             elevation: 0,
-            actions: [
-              // Bouton pour supprimer les tâches terminées
-              Consumer<TodoProvider>(
-                builder: (context, todoProvider, _) {
-                  return todoProvider.completedTodos.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear_all),
-                          tooltip: 'Supprimer les tâches terminées',
-                          onPressed: () =>
-                              _showDeleteAllCompletedDialog(todoProvider),
-                        )
-                      : const SizedBox.shrink();
-                },
-              ),
-              // Statistiques
-              Consumer<TodoProvider>(
-                builder: (context, todoProvider, _) {
-                  final stats = todoProvider.getStatistics();
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: Center(
-                      child: Text(
-                        '${stats['completed']}/${stats['total']}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-              // Bouton de déconnexion
-              IconButton(
-                icon: const Icon(Icons.logout),
-                onPressed: () {
-                  _showLogoutDialog();
-                },
-              ),
-            ],
+        actions: [
+          // Dark mode toggle
+          Consumer<ThemeProvider>(
+            builder: (context, theme, _) {
+              return IconButton(
+                tooltip: theme.isDark ? 'Mode clair' : 'Mode sombre',
+                icon: Icon(theme.isDark ? Icons.wb_sunny : Icons.dark_mode),
+                onPressed: theme.toggle,
+              );
+            },
           ),
-          body: Builder(
-            builder: (context) {
-              final filteredTodos = _getFilteredTodos(todoProvider);
+          // Bouton pour supprimer les tâches terminées
+          Consumer<TodoProvider>(
+            builder: (context, todoProvider, _) {
+              return todoProvider.completedTodos.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear_all),
+                      tooltip: 'Supprimer les tâches terminées',
+                      onPressed: () => _showDeleteAllCompletedDialog(todoProvider),
+                    )
+                  : const SizedBox.shrink();
+            },
+          ),
+          // Statistiques
+          Consumer<TodoProvider>(
+            builder: (context, todoProvider, _) {
+              final stats = todoProvider.getStatistics();
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: Center(
+                  child: Text(
+                    '${stats['completed']}/${stats['total']}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          // Bouton de déconnexion
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              _showLogoutDialog();
+            },
+          ),
+        ],
+      ),
+      body: Builder(
+        builder: (context) {
+          final filteredTodos = _getFilteredTodos(todoProvider);
 
               if (todoProvider.isLoading && todoProvider.todos.isEmpty) {
                 return const Center(child: CircularProgressIndicator());
@@ -316,171 +326,180 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildStatsBar(TodoProvider todoProvider) {
     final stats = todoProvider.getStatistics();
+    final cs = Theme.of(context).colorScheme;
 
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade200),
-      ),
-      child: Row(
-        children: [
-          _buildStatItem('Total', stats['total'].toString(), Colors.blue),
-          const SizedBox(width: 24),
-          _buildStatItem(
-            'Terminées',
-            stats['completed'].toString(),
-            Colors.green,
-          ),
-          const SizedBox(width: 24),
-          _buildStatItem(
-            'En cours',
-            stats['pending'].toString(),
-            Colors.orange,
-          ),
-          const Spacer(),
-          Text(
-            '${stats['completionRate']}% terminé',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.blue.shade800,
-            ),
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSearchAndFilters() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Barre de recherche
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Rechercher une tâche...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                      },
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              filled: true,
-              fillColor: Colors.grey.shade50,
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Filtres - Boutons à gauche et tri à droite
           Row(
             children: [
-              // Boutons de filtres à gauche
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      _buildFilterChip('Toutes', 'all'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('En cours', 'pending'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Terminées', 'completed'),
-                    ],
-                  ),
+              _buildStatItem('Total', stats['total'].toString(), Colors.blue),
+              const SizedBox(width: 24),
+              _buildStatItem('Terminées', stats['completed'].toString(), Colors.green),
+              const SizedBox(width: 24),
+              _buildStatItem('En cours', stats['pending'].toString(), Colors.orange),
+              const Spacer(),
+              Text(
+                '${stats['completionRate']}% terminé',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: cs.primary,
                 ),
-              ),
-              const SizedBox(width: 16),
-              // Menu de tri à droite
-              PopupMenuButton<SortOption>(
-                onSelected: (SortOption option) {
-                  setState(() {
-                    _currentSort = option;
-                  });
-                },
-                tooltip: 'Options de tri',
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade300),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _currentSort.label,
-                        style: TextStyle(
-                          color: Colors.blue.shade800,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.arrow_drop_down,
-                        color: Colors.blue.shade800,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ),
-                itemBuilder: (BuildContext context) =>
-                    SortOption.values.map((SortOption option) {
-                      return PopupMenuItem<SortOption>(
-                        value: option,
-                        child: Row(
-                          children: [
-                            Icon(
-                              option.icon,
-                              size: 20,
-                              color: _currentSort == option
-                                  ? Colors.blue
-                                  : Colors.grey.shade600,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              option.label,
-                              style: TextStyle(
-                                color: _currentSort == option
-                                    ? Colors.blue
-                                    : Colors.black,
-                                fontWeight: _currentSort == option
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                            if (_currentSort == option) ...[
-                              const Spacer(),
-                              Icon(Icons.check, size: 20, color: Colors.blue),
-                            ],
-                          ],
-                        ),
-                      );
-                    }).toList(),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: (stats['completionRate'] ?? 0) / 100.0,
+              minHeight: 8,
+              backgroundColor: cs.surfaceVariant.withOpacity(0.5),
+              valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+            ),
+          ),
         ],
       ),
     );
   }
+
+Widget _buildSearchAndFilters() {
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 16),
+    child: Column(
+      children: [
+        // Barre de recherche
+        TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: 'Rechercher une tâche...',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                    },
+                  )
+                : null,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            filled: true,
+            fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Filtres - Boutons à gauche et tri à droite
+        Row(
+          children: [
+            // Boutons de filtres à gauche
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    _buildFilterChip('Toutes', 'all'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('En cours', 'pending'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Terminées', 'completed'),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Menu de tri à droite
+            PopupMenuButton<SortOption>(
+  onSelected: (SortOption option) {
+    setState(() {
+      _currentSort = option;
+    });
+  },
+  tooltip: 'Options de tri',
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(12),
+  ),
+  child: Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.primaryContainer,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.4)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          _currentSort.label,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onPrimaryContainer,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Icon(
+          Icons.arrow_drop_down,
+          color: Theme.of(context).colorScheme.onPrimaryContainer,
+          size: 20,
+        ),
+      ],
+    ),
+  ),
+  itemBuilder: (BuildContext context) => SortOption.values.map((SortOption option) {
+    return PopupMenuItem<SortOption>(
+      value: option,
+      child: Row(
+        children: [
+          Icon(
+            option.icon,
+            size: 20,
+            color: _currentSort == option ? Colors.blue : Colors.grey.shade600,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            option.label,
+            style: TextStyle(
+              color: _currentSort == option ? Colors.blue : Colors.black,
+              fontWeight: _currentSort == option ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+          if (_currentSort == option) ...[
+            const Spacer(),
+            Icon(
+              Icons.check,
+              size: 20,
+              color: Colors.blue,
+            ),
+          ],
+        ],
+      ),
+    );
+  }).toList(),
+),
+          ],
+        ),
+        const SizedBox(height: 8),
+      ],
+    ),
+  );
+}
 
   Widget _buildFilterChip(String label, String value) {
     final isSelected = _filterStatus == value;
@@ -492,8 +511,8 @@ class _HomeScreenState extends State<HomeScreen> {
           _filterStatus = value;
         });
       },
-      selectedColor: Colors.blue.shade100,
-      checkmarkColor: Colors.blue.shade800,
+      selectedColor: Theme.of(context).colorScheme.primaryContainer,
+      checkmarkColor: Theme.of(context).colorScheme.onPrimaryContainer,
     );
   }
 
@@ -511,7 +530,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     );
