@@ -37,6 +37,7 @@ analysis_benchmark.json
 .flutter-plugins
 .flutter-plugins-dependencies
 **/generated_plugin_registrant.dart
+test/**/*.mocks.dart
 .packages
 .pub-preload-cache/
 .pub/

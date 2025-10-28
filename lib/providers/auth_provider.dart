@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthProvider with ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAuth _auth;
+  late final StreamSubscription<User?> _authSubscription;
   User? _user;
   bool _isLoading = false;
   String? _errorMessage;
@@ -13,12 +16,18 @@ class AuthProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  AuthProvider() {
+  AuthProvider({
+    FirebaseAuth? auth,
+    Stream<User?>? authStateChangesStream,
+  }) : _auth = auth ?? FirebaseAuth.instance {
     // Écouter les changements d'authentification
-    _auth.authStateChanges().listen((User? user) {
-      _user = user;
-      notifyListeners();
-    });
+    _authSubscription =
+        (authStateChangesStream ?? _auth.authStateChanges()).listen(
+      (User? user) {
+        _user = user;
+        notifyListeners();
+      },
+    );
   }
 
   // Inscription
@@ -142,5 +151,11 @@ class AuthProvider with ChangeNotifier {
 
   void clearError() {
     _clearError();
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    super.dispose();
   }
 }
