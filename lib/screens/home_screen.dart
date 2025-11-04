@@ -182,59 +182,60 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: Colors.blue.shade600,
             foregroundColor: Colors.white,
             elevation: 0,
-        actions: [
-          // Dark mode toggle
-          Consumer<ThemeProvider>(
-            builder: (context, theme, _) {
-              return IconButton(
-                tooltip: theme.isDark ? 'Mode clair' : 'Mode sombre',
-                icon: Icon(theme.isDark ? Icons.wb_sunny : Icons.dark_mode),
-                onPressed: theme.toggle,
-              );
-            },
-          ),
-          // Bouton pour supprimer les tâches terminées
-          Consumer<TodoProvider>(
-            builder: (context, todoProvider, _) {
-              return todoProvider.completedTodos.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear_all),
-                      tooltip: 'Supprimer les tâches terminées',
-                      onPressed: () => _showDeleteAllCompletedDialog(todoProvider),
-                    )
-                  : const SizedBox.shrink();
-            },
-          ),
-          // Statistiques
-          Consumer<TodoProvider>(
-            builder: (context, todoProvider, _) {
-              final stats = todoProvider.getStatistics();
-              return Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: Center(
-                  child: Text(
-                    '${stats['completed']}/${stats['total']}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+            actions: [
+              // Dark mode toggle
+              Consumer<ThemeProvider>(
+                builder: (context, theme, _) {
+                  return IconButton(
+                    tooltip: theme.isDark ? 'Mode clair' : 'Mode sombre',
+                    icon: Icon(theme.isDark ? Icons.wb_sunny : Icons.dark_mode),
+                    onPressed: theme.toggle,
+                  );
+                },
+              ),
+              // Bouton pour supprimer les tâches terminées
+              Consumer<TodoProvider>(
+                builder: (context, todoProvider, _) {
+                  return todoProvider.completedTodos.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_all),
+                          tooltip: 'Supprimer les tâches terminées',
+                          onPressed: () =>
+                              _showDeleteAllCompletedDialog(todoProvider),
+                        )
+                      : const SizedBox.shrink();
+                },
+              ),
+              // Statistiques
+              Consumer<TodoProvider>(
+                builder: (context, todoProvider, _) {
+                  final stats = todoProvider.getStatistics();
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Center(
+                      child: Text(
+                        '${stats['completed']}/${stats['total']}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              );
-            },
+                  );
+                },
+              ),
+              // Bouton de déconnexion
+              IconButton(
+                icon: const Icon(Icons.logout),
+                onPressed: () {
+                  _showLogoutDialog();
+                },
+              ),
+            ],
           ),
-          // Bouton de déconnexion
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              _showLogoutDialog();
-            },
-          ),
-        ],
-      ),
-      body: Builder(
-        builder: (context) {
-          final filteredTodos = _getFilteredTodos(todoProvider);
+          body: Builder(
+            builder: (context) {
+              final filteredTodos = _getFilteredTodos(todoProvider);
 
               if (todoProvider.isLoading && todoProvider.todos.isEmpty) {
                 return const Center(child: CircularProgressIndicator());
@@ -350,9 +351,17 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               _buildStatItem('Total', stats['total'].toString(), Colors.blue),
               const SizedBox(width: 24),
-              _buildStatItem('Terminées', stats['completed'].toString(), Colors.green),
+              _buildStatItem(
+                'Terminées',
+                stats['completed'].toString(),
+                Colors.green,
+              ),
               const SizedBox(width: 24),
-              _buildStatItem('En cours', stats['pending'].toString(), Colors.orange),
+              _buildStatItem(
+                'En cours',
+                stats['pending'].toString(),
+                Colors.orange,
+              ),
               const Spacer(),
               Text(
                 '${stats['completionRate']}% terminé',
@@ -378,128 +387,142 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-Widget _buildSearchAndFilters() {
-  return Container(
-    margin: const EdgeInsets.symmetric(horizontal: 16),
-    child: Column(
-      children: [
-        // Barre de recherche
-        TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: 'Rechercher une tâche...',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: _searchQuery.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      _searchController.clear();
-                    },
-                  )
-                : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+  Widget _buildSearchAndFilters() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          // Barre de recherche
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Rechercher une tâche...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: Theme.of(
+                context,
+              ).colorScheme.surfaceVariant.withOpacity(0.3),
             ),
-            filled: true,
-            fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
           ),
-        ),
-        const SizedBox(height: 12),
-        // Filtres - Boutons à gauche et tri à droite
-        Row(
-          children: [
-            // Boutons de filtres à gauche
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    _buildFilterChip('Toutes', 'all'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('En cours', 'pending'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Terminées', 'completed'),
-                  ],
+          const SizedBox(height: 12),
+          // Filtres - Boutons à gauche et tri à droite
+          Row(
+            children: [
+              // Boutons de filtres à gauche
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      _buildFilterChip('Toutes', 'all'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('En cours', 'pending'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Terminées', 'completed'),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            // Menu de tri à droite
-            PopupMenuButton<SortOption>(
-  onSelected: (SortOption option) {
-    setState(() {
-      _currentSort = option;
-    });
-  },
-  tooltip: 'Options de tri',
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(12),
-  ),
-  child: Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.primaryContainer,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.4)),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          _currentSort.label,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onPrimaryContainer,
-            fontWeight: FontWeight.w500,
+              const SizedBox(width: 16),
+              // Menu de tri à droite
+              PopupMenuButton<SortOption>(
+                onSelected: (SortOption option) {
+                  setState(() {
+                    _currentSort = option;
+                  });
+                },
+                tooltip: 'Options de tri',
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.4),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _currentSort.label,
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_drop_down,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+                itemBuilder: (BuildContext context) =>
+                    SortOption.values.map((SortOption option) {
+                      return PopupMenuItem<SortOption>(
+                        value: option,
+                        child: Row(
+                          children: [
+                            Icon(
+                              option.icon,
+                              size: 20,
+                              color: _currentSort == option
+                                  ? Colors.blue
+                                  : Colors.grey.shade600,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              option.label,
+                              style: TextStyle(
+                                color: _currentSort == option
+                                    ? Colors.blue
+                                    : Colors.black,
+                                fontWeight: _currentSort == option
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                            if (_currentSort == option) ...[
+                              const Spacer(),
+                              Icon(Icons.check, size: 20, color: Colors.blue),
+                            ],
+                          ],
+                        ),
+                      );
+                    }).toList(),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(width: 4),
-        Icon(
-          Icons.arrow_drop_down,
-          color: Theme.of(context).colorScheme.onPrimaryContainer,
-          size: 20,
-        ),
-      ],
-    ),
-  ),
-  itemBuilder: (BuildContext context) => SortOption.values.map((SortOption option) {
-    return PopupMenuItem<SortOption>(
-      value: option,
-      child: Row(
-        children: [
-          Icon(
-            option.icon,
-            size: 20,
-            color: _currentSort == option ? Colors.blue : Colors.grey.shade600,
-          ),
-          const SizedBox(width: 12),
-          Text(
-            option.label,
-            style: TextStyle(
-              color: _currentSort == option ? Colors.blue : Colors.black,
-              fontWeight: _currentSort == option ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-          if (_currentSort == option) ...[
-            const Spacer(),
-            Icon(
-              Icons.check,
-              size: 20,
-              color: Colors.blue,
-            ),
-          ],
+          const SizedBox(height: 8),
         ],
       ),
     );
-  }).toList(),
-),
-          ],
-        ),
-        const SizedBox(height: 8),
-      ],
-    ),
-  );
-}
+  }
 
   Widget _buildFilterChip(String label, String value) {
     final isSelected = _filterStatus == value;
@@ -960,7 +983,7 @@ Widget _buildSearchAndFilters() {
                       title: titleController.text.trim(),
                       description: descriptionController.text.trim(),
                       dueDate: selectedDate,
-                      priority: selectedPriority,
+                      priority: selectedPriority.label,
                     );
                     todoProvider.updateTodo(updatedTodo);
                     Navigator.pop(context);
