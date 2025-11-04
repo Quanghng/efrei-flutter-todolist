@@ -4,8 +4,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/todo.dart';
 
 class TodoProvider with ChangeNotifier {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+
+  TodoProvider({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
 
   List<Todo> _todos = [];
   bool _isLoading = false;
