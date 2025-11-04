@@ -183,15 +183,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(width: 23),
-                // Top navigation menu
-                TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    'Tâches',
-                    style: TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                ),
-                const SizedBox(width: 8),
                 TextButton(
                   onPressed: () {
                     Navigator.pushReplacement(
