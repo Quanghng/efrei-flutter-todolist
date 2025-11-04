@@ -3,12 +3,13 @@ import 'package:flutter/foundation.dart';
 
 import 'package:efrei_todolist/providers/auth_provider.dart' as local_auth;
 
+/// Lightweight fake used in widget/integration tests to bypass real Firebase.
 class FakeAuthProvider extends ChangeNotifier implements local_auth.AuthProvider {
   bool _isLoading = false;
   String? _errorMessage;
-  User? _user;
+  bool _loggedIn = false;
 
-  // Observability helpers for tests
+  // Observability helpers for assertions
   String? lastEmail;
   String? lastPassword;
   String? lastSignUpEmail;
@@ -21,10 +22,10 @@ class FakeAuthProvider extends ChangeNotifier implements local_auth.AuthProvider
   String signUpFailureMessage = 'Erreur d\'inscription';
 
   @override
-  User? get user => _user;
+  User? get user => null;
 
   @override
-  bool get isAuthenticated => _user != null;
+  bool get isAuthenticated => _loggedIn;
 
   @override
   bool get isLoading => _isLoading;
@@ -46,6 +47,13 @@ class FakeAuthProvider extends ChangeNotifier implements local_auth.AuthProvider
     }
   }
 
+  void setLoggedIn(bool value) {
+    if (_loggedIn != value) {
+      _loggedIn = value;
+      notifyListeners();
+    }
+  }
+
   @override
   Future<bool> signIn(String email, String password) async {
     lastEmail = email;
@@ -56,6 +64,7 @@ class FakeAuthProvider extends ChangeNotifier implements local_auth.AuthProvider
 
     if (signInShouldSucceed) {
       _setError(null);
+      setLoggedIn(true);
       return true;
     }
 
@@ -74,6 +83,7 @@ class FakeAuthProvider extends ChangeNotifier implements local_auth.AuthProvider
 
     if (signUpShouldSucceed) {
       _setError(null);
+      setLoggedIn(true);
       return true;
     }
 
@@ -83,8 +93,7 @@ class FakeAuthProvider extends ChangeNotifier implements local_auth.AuthProvider
 
   @override
   Future<void> signOut() async {
-    _user = null;
-    notifyListeners();
+    setLoggedIn(false);
   }
 
   @override
@@ -93,10 +102,5 @@ class FakeAuthProvider extends ChangeNotifier implements local_auth.AuthProvider
   @override
   void clearError() {
     _setError(null);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 }
