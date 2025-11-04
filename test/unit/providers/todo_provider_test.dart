@@ -53,7 +53,7 @@ void main() {
         'Task',
         'Description',
         DateTime(2024, 1, 1),
-        'haut',
+        'fort',
       );
 
       final docs = await firestore.collection('todos').get();
@@ -63,7 +63,7 @@ void main() {
       final stored = docs.docs.first.data();
       expect(stored['title'], 'Task');
       expect(stored['description'], 'Description');
-      expect(stored['priority'], 'haut');
+      expect(stored['priority'], 'fort');
       expect(stored['userId'], 'user-123');
     });
 
@@ -159,7 +159,7 @@ void main() {
       final updated = todo.copyWith(
         title: 'Updated title',
         description: 'Desc updated',
-        priority: 'haut',
+        priority: 'fort',
       );
 
       final success = await provider.updateTodo(updated);
@@ -167,7 +167,7 @@ void main() {
 
       expect(success, isTrue);
       expect(snapshot.data()?['title'], 'Updated title');
-      expect(snapshot.data()?['priority'], 'haut');
+      expect(snapshot.data()?['priority'], 'fort');
       expect(snapshot.data()?['description'], 'Desc updated');
     });
 
