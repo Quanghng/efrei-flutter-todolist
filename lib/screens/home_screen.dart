@@ -1,3 +1,4 @@
+import 'package:efrei_todolist/screens/calendar_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -68,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _filterStatus = 'all'; // 'all', 'completed', 'pending'
-  SortOption _currentSort = SortOption.dateDesc;
+  SortOption _currentSort = SortOption.statusPendingFirst;
 
   @override
   void initState() {
@@ -175,9 +176,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text(
-              'EFREI Taskip',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            title: Row(
+              children: [
+                const Text(
+                  'EFREI Taskip',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 23),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (context) => const CalendarScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'Calendrier',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                ),
+              ],
             ),
             backgroundColor: Colors.blue.shade600,
             foregroundColor: Colors.white,

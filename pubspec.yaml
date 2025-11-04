@@ -49,6 +49,9 @@ dependencies:
   # Local storage
   shared_preferences: ^2.3.3
 
+  # Calendrier 
+  table_calendar: ^3.0.9
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
