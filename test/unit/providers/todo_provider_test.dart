@@ -95,7 +95,7 @@ void main() {
         'priority': 'moyen',
       });
 
-      provider.startListening();
+      provider.startListening(user);
       await Future.delayed(const Duration(milliseconds: 20));
 
       expect(provider.todos, hasLength(2));
@@ -121,7 +121,7 @@ void main() {
         'priority': 'moyen',
       });
 
-      provider.startListening();
+      provider.startListening(user);
       await Future.delayed(const Duration(milliseconds: 20));
 
       final success = await provider.toggleTodoStatus(ref.id);
@@ -229,7 +229,7 @@ void main() {
         'priority': 'moyen',
       });
 
-      provider.startListening();
+      provider.startListening(user);
       await Future.delayed(const Duration(milliseconds: 30));
 
       final success = await provider.deleteCompletedTodos();
@@ -264,7 +264,7 @@ void main() {
       await save('todo-2', 'Buy groceries', 'milk and bread');
       await save('todo-3', 'Call tom', 'football game plan');
 
-      provider.startListening();
+      provider.startListening(user);
       await Future.delayed(const Duration(milliseconds: 30));
 
       final results = provider.searchTodos('study');
@@ -298,7 +298,7 @@ void main() {
       await save('todo-2', true);
       await save('todo-3', false);
 
-      provider.startListening();
+      provider.startListening(user);
       await Future.delayed(const Duration(milliseconds: 30));
 
       final stats = provider.getStatistics();
