@@ -61,7 +61,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    
+    // Commencer à écouter les todos de l'utilisateur
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TodoProvider>().startListening();
+    });
+
     // Écouter les changements de recherche
     _searchController.addListener(() {
       setState(() {
