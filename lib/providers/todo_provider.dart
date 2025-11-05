@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -17,6 +18,10 @@ class TodoProvider with ChangeNotifier {
   List<Todo> _publicTodos = []; // Nouvelle liste pour les todos publics
   bool _isLoading = false;
   String? _errorMessage;
+  
+  // Subscriptions pour gérer proprement les listeners
+  StreamSubscription<QuerySnapshot>? _todosSubscription;
+  StreamSubscription<QuerySnapshot>? _publicTodosSubscription;
 
   // Getters
   List<Todo> get todos => _todos;
@@ -32,17 +37,14 @@ class TodoProvider with ChangeNotifier {
   int get pendingCount => pendingTodos.length;
 
   // Écouter les changements en temps réel
-  void startListening() {
-    final user = _auth.currentUser;
-    if (user == null) {
-      print('TodoProvider: Aucun utilisateur connecté');
-      return;
-    }
+  void startListening(User user) {
+    // Annuler les anciens listeners s'ils existent
+    stopListening();
 
     print('TodoProvider: Début de l\'écoute pour l\'utilisateur ${user.uid}');
 
     // Écouter les todos de l'utilisateur
-    _firestore
+    _todosSubscription = _firestore
         .collection('todos')
         .where('userId', isEqualTo: user.uid)
         // Temporairement commenté en attendant la création de l'index
@@ -68,7 +70,7 @@ class TodoProvider with ChangeNotifier {
         );
     
     // Écouter les todos publics de tous les utilisateurs
-    _firestore
+    _publicTodosSubscription = _firestore
         .collection('todos')
         .where('isPublic', isEqualTo: true)
         .snapshots()
@@ -92,6 +94,11 @@ class TodoProvider with ChangeNotifier {
 
   // Arrêter l'écoute
   void stopListening() {
+    print('TodoProvider: Arrêt de l\'écoute des listeners');
+    _todosSubscription?.cancel();
+    _publicTodosSubscription?.cancel();
+    _todosSubscription = null;
+    _publicTodosSubscription = null;
     _todos = [];
     _publicTodos = [];
     notifyListeners();
@@ -260,5 +267,11 @@ class TodoProvider with ChangeNotifier {
           ? (completedCount / totalTodos * 100).round()
           : 0,
     };
+  }
+
+  @override
+  void dispose() {
+    stopListening();
+    super.dispose();
   }
 }
