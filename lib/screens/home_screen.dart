@@ -1,0 +1,1100 @@
+import 'package:efrei_todolist/screens/calendar_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/todo_provider.dart';
+import '../providers/theme_provider.dart';
+
+enum Priority {
+  faible(1, 'Faible', Colors.green),
+  moyen(2, 'Moyen', Colors.orange),
+  fort(3, 'Fort', Colors.red);
+
+  const Priority(this.value, this.label, this.color);
+  final int value;
+  final String label;
+  final Color color;
+
+  static Priority fromString(String str) {
+    switch (str.toLowerCase()) {
+      case 'faible':
+        return Priority.faible;
+      case 'moyen':
+        return Priority.moyen;
+      case 'fort':
+        return Priority.fort;
+      default:
+        return Priority.moyen;
+    }
+  }
+}
+
+enum SortOption {
+  dateDesc('Date (récent → ancien)', 'date', true, Icons.schedule),
+  dateAsc('Date (ancien → récent)', 'date', false, Icons.schedule_outlined),
+  priorityDesc(
+    'Priorité (fort → faible)',
+    'priority',
+    true,
+    Icons.priority_high,
+  ),
+  priorityAsc(
+    'Priorité (faible → fort)',
+    'priority',
+    false,
+    Icons.low_priority,
+  ),
+  statusPendingFirst(
+    'Statut (en attente → terminé)',
+    'status',
+    false,
+    Icons.check_circle_outline,
+  );
+
+  const SortOption(this.label, this.type, this.descending, this.icon);
+  final String label;
+  final String type;
+  final bool descending;
+  final IconData icon;
+}
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _filterStatus = 'all'; // 'all', 'completed', 'pending'
+  SortOption _currentSort = SortOption.statusPendingFirst;
+
+  @override
+  void initState() {
+    super.initState();
+    // Commencer à écouter les todos de l'utilisateur
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TodoProvider>().startListening();
+    });
+
+    // Écouter les changements de recherche
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<dynamic> _getFilteredTodos(TodoProvider todoProvider) {
+    List<dynamic> filteredTodos;
+
+    // Appliquer le filtre de statut
+    switch (_filterStatus) {
+      case 'completed':
+        filteredTodos = todoProvider.completedTodos;
+        break;
+      case 'pending':
+        filteredTodos = todoProvider.pendingTodos;
+        break;
+      default:
+        filteredTodos = todoProvider.todos;
+    }
+
+    // Appliquer la recherche
+    if (_searchQuery.isNotEmpty) {
+      filteredTodos = filteredTodos.where((todo) {
+        return todo.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            todo.description.toLowerCase().contains(_searchQuery.toLowerCase());
+      }).toList();
+    }
+
+    // Trier selon l'option choisie
+    if (_currentSort.type == 'date') {
+      filteredTodos.sort((a, b) {
+        if (_currentSort.descending) {
+          return b.createdAt.compareTo(a.createdAt); // Plus récentes en premier
+        } else {
+          return a.createdAt.compareTo(
+            b.createdAt,
+          ); // Plus anciennes en premier
+        }
+      });
+    } else if (_currentSort.type == 'status') {
+      filteredTodos.sort((a, b) {
+        if (a.isCompleted == b.isCompleted) {
+          return b.createdAt.compareTo(a.createdAt);
+        }
+        return a.isCompleted ? 1 : -1;
+      });
+    } else {
+      // Tri par priorité
+      filteredTodos.sort((a, b) {
+        final priorityA = Priority.fromString(a.priority ?? 'moyen');
+        final priorityB = Priority.fromString(b.priority ?? 'moyen');
+
+        if (_currentSort.descending) {
+          return priorityB.value.compareTo(priorityA.value); // Fort -> Faible
+        } else {
+          return priorityA.value.compareTo(priorityB.value); // Faible -> Fort
+        }
+      });
+    }
+
+    return filteredTodos;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<TodoProvider>(
+      builder: (context, todoProvider, _) {
+        // Afficher les erreurs s'il y en a
+        if (todoProvider.errorMessage != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(todoProvider.errorMessage!),
+                backgroundColor: Colors.red,
+                action: SnackBarAction(
+                  label: 'OK',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    todoProvider.clearError();
+                  },
+                ),
+              ),
+            );
+          });
+        }
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Row(
+              children: [
+                const Text(
+                  'EFREI Taskip',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 23),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (context) => const CalendarScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'Calendrier',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.blue.shade600,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            actions: [
+              // Dark mode toggle
+              Consumer<ThemeProvider>(
+                builder: (context, theme, _) {
+                  return IconButton(
+                    tooltip: theme.isDark ? 'Mode clair' : 'Mode sombre',
+                    icon: Icon(theme.isDark ? Icons.wb_sunny : Icons.dark_mode),
+                    onPressed: theme.toggle,
+                  );
+                },
+              ),
+              // Bouton pour supprimer les tâches terminées
+              Consumer<TodoProvider>(
+                builder: (context, todoProvider, _) {
+                  return todoProvider.completedTodos.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_all),
+                          tooltip: 'Supprimer les tâches terminées',
+                          onPressed: () =>
+                              _showDeleteAllCompletedDialog(todoProvider),
+                        )
+                      : const SizedBox.shrink();
+                },
+              ),
+              // Statistiques
+              Consumer<TodoProvider>(
+                builder: (context, todoProvider, _) {
+                  final stats = todoProvider.getStatistics();
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Center(
+                      child: Text(
+                        '${stats['completed']}/${stats['total']}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              // Bouton de déconnexion
+              IconButton(
+                icon: const Icon(Icons.logout),
+                onPressed: () {
+                  _showLogoutDialog();
+                },
+              ),
+            ],
+          ),
+          body: Builder(
+            builder: (context) {
+              final filteredTodos = _getFilteredTodos(todoProvider);
+
+              if (todoProvider.isLoading && todoProvider.todos.isEmpty) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              return Column(
+                children: [
+                  // Barre de statistiques
+                  _buildStatsBar(todoProvider),
+
+                  // Barre de recherche et filtres
+                  _buildSearchAndFilters(),
+
+                  // Liste des todos ou état vide
+                  Expanded(
+                    child: filteredTodos.isEmpty
+                        ? _buildEmptyState()
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: filteredTodos.length,
+                            itemBuilder: (context, index) {
+                              final todo = filteredTodos[index];
+                              return _buildTodoItem(todo, todoProvider);
+                            },
+                          ),
+                  ),
+                ],
+              );
+            },
+          ),
+          floatingActionButton: FloatingActionButton(
+            backgroundColor: Colors.blue.shade600,
+            onPressed: _showAddTodoDialog,
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState() {
+    String message;
+    String subtitle;
+
+    if (_searchQuery.isNotEmpty) {
+      message = 'Aucun résultat';
+      subtitle = 'Aucune tâche ne correspond à "${_searchQuery}"';
+    } else if (_filterStatus == 'completed') {
+      message = 'Aucune tâche terminée';
+      subtitle = 'Les tâches terminées apparaîtront ici';
+    } else if (_filterStatus == 'pending') {
+      message = 'Aucune tâche en cours';
+      subtitle = 'Parfait ! Toutes vos tâches sont terminées';
+    } else {
+      message = 'Aucune tâche pour le moment';
+      subtitle = 'Appuyez sur + pour ajouter votre première tâche';
+    }
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            _searchQuery.isNotEmpty
+                ? Icons.search_off
+                : Icons.checklist_rounded,
+            size: 100,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            message,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsBar(TodoProvider todoProvider) {
+    final stats = todoProvider.getStatistics();
+    final cs = Theme.of(context).colorScheme;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _buildStatItem('Total', stats['total'].toString(), Colors.blue),
+              const SizedBox(width: 24),
+              _buildStatItem(
+                'Terminées',
+                stats['completed'].toString(),
+                Colors.green,
+              ),
+              const SizedBox(width: 24),
+              _buildStatItem(
+                'En cours',
+                stats['pending'].toString(),
+                Colors.orange,
+              ),
+              const Spacer(),
+              Text(
+                '${stats['completionRate']}% terminé',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: cs.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: (stats['completionRate'] ?? 0) / 100.0,
+              minHeight: 8,
+              backgroundColor: cs.surfaceVariant.withOpacity(0.5),
+              valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchAndFilters() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          // Barre de recherche
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Rechercher une tâche...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: Theme.of(
+                context,
+              ).colorScheme.surfaceVariant.withOpacity(0.3),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Filtres - Boutons à gauche et tri à droite
+          Row(
+            children: [
+              // Boutons de filtres à gauche
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      _buildFilterChip('Toutes', 'all'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('En cours', 'pending'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Terminées', 'completed'),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Menu de tri à droite
+              PopupMenuButton<SortOption>(
+                onSelected: (SortOption option) {
+                  setState(() {
+                    _currentSort = option;
+                  });
+                },
+                tooltip: 'Options de tri',
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.4),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _currentSort.label,
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_drop_down,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+                itemBuilder: (BuildContext context) =>
+                    SortOption.values.map((SortOption option) {
+                      return PopupMenuItem<SortOption>(
+                        value: option,
+                        child: Row(
+                          children: [
+                            Icon(
+                              option.icon,
+                              size: 20,
+                              color: _currentSort == option
+                                  ? Colors.blue
+                                  : Colors.grey.shade600,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              option.label,
+                              style: TextStyle(
+                                color: _currentSort == option
+                                    ? Colors.blue
+                                    : Colors.black,
+                                fontWeight: _currentSort == option
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                            if (_currentSort == option) ...[
+                              const Spacer(),
+                              Icon(Icons.check, size: 20, color: Colors.blue),
+                            ],
+                          ],
+                        ),
+                      );
+                    }).toList(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value) {
+    final isSelected = _filterStatus == value;
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          _filterStatus = value;
+        });
+      },
+      selectedColor: Theme.of(context).colorScheme.primaryContainer,
+      checkmarkColor: Theme.of(context).colorScheme.onPrimaryContainer,
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, Color color) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTodoItem(todo, TodoProvider todoProvider) {
+    final priority = Priority.fromString(todo.priority ?? 'moyen');
+
+    final bool isOverdue =
+        todo.dueDate != null &&
+        !todo.isCompleted &&
+        todo.dueDate!.isBefore(
+          DateTime.now().subtract(const Duration(days: 1)),
+        );
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Indicateur de priorité
+            Container(
+              width: 4,
+              height: 40,
+              decoration: BoxDecoration(
+                color: priority.color,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Checkbox(
+              value: todo.isCompleted,
+              onChanged: (value) {
+                todoProvider.toggleTodoStatus(todo.id);
+              },
+              activeColor: Colors.green,
+            ),
+          ],
+        ),
+        title: Text(
+          todo.title,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
+            color: todo.isCompleted ? Colors.grey : null,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (todo.description.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                todo.description,
+                style: TextStyle(
+                  decoration: todo.isCompleted
+                      ? TextDecoration.lineThrough
+                      : null,
+                  color: todo.isCompleted ? Colors.grey : Colors.grey.shade700,
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            // Due date
+            if (todo.dueDate != null) ...[
+              Row(
+                children: [
+                  Icon(
+                    Icons.alarm,
+                    color: isOverdue ? Colors.red : Colors.grey.shade600,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Échéance: ${_formatDate(todo.dueDate!)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isOverdue ? Colors.red : Colors.grey.shade600,
+                      fontWeight: isOverdue
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+            ],
+            Row(
+              children: [
+                Icon(
+                  Icons.calendar_today,
+                  color: Colors.grey.shade600,
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Crée: ${_formatDate(todo.createdAt)}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+              ],
+            ),
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Priorité
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: priority.color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: priority.color.withOpacity(0.3)),
+              ),
+              child: Text(
+                priority.label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: priority.color,
+                ),
+              ),
+            ),
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                switch (value) {
+                  case 'edit':
+                    _showEditTodoDialog(todo, todoProvider);
+                    break;
+                  case 'delete':
+                    _showDeleteDialog(todo.id, todoProvider);
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit, color: Colors.blue),
+                      SizedBox(width: 8),
+                      Text('Modifier'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Supprimer'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  void _showAddTodoDialog() {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    Priority selectedPriority = Priority.moyen;
+    DateTime? selectedDate;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Nouvelle tâche'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Titre *',
+                  border: OutlineInputBorder(),
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description (optionnel)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 16),
+              // Sélecteur de priorité
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Priorité *',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: Priority.values.map((priority) {
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: ChoiceChip(
+                            label: Text(
+                              priority.label,
+                              style: TextStyle(
+                                color: selectedPriority == priority
+                                    ? Colors.white
+                                    : priority.color,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            selected: selectedPriority == priority,
+                            selectedColor: priority.color,
+                            backgroundColor: priority.color.withOpacity(0.1),
+                            showCheckmark: false,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setDialogState(() {
+                                  selectedPriority = priority;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              //Sélecteur de date d'échéance
+              Row(
+                children: [
+                  Text(
+                    selectedDate == null
+                        ? 'Date d\'échéance'
+                        : 'Échéance: ${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(width: 50),
+                  const Icon(Icons.calendar_today),
+                  TextButton(
+                    onPressed: () async {
+                      final DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate ?? DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2101),
+                      );
+                      if (picked != null && picked != selectedDate) {
+                        setDialogState(() {
+                          selectedDate = picked;
+                        });
+                      }
+                    },
+                    child: const Text('Choisir'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (titleController.text.trim().isNotEmpty) {
+                  // Vous devez modifier votre méthode addTodo pour accepter la priorité
+                  context.read<TodoProvider>().addTodo(
+                    titleController.text.trim(),
+                    descriptionController.text.trim(),
+                    selectedDate,
+                    selectedPriority.label,
+                  );
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Ajouter'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditTodoDialog(todo, TodoProvider todoProvider) {
+    final titleController = TextEditingController(text: todo.title);
+    final descriptionController = TextEditingController(text: todo.description);
+    Priority selectedPriority = Priority.fromString(todo.priority);
+    DateTime? selectedDate = todo.dueDate;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Modifier la tâche'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Titre *',
+                    border: OutlineInputBorder(),
+                  ),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description (optionnel)',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Priorité *',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: Priority.values.map((priority) {
+                        return Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: ChoiceChip(
+                              label: Text(
+                                priority.label,
+                                style: TextStyle(
+                                  color: selectedPriority == priority
+                                      ? Colors.white
+                                      : priority.color,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              selected: selectedPriority == priority,
+                              selectedColor: priority.color,
+                              backgroundColor: priority.color.withOpacity(0.1),
+                              showCheckmark: false,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setDialogState(() {
+                                    selectedPriority = priority;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Sélecteur de date d'échéance
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        selectedDate == null
+                            ? 'Date d\'échéance'
+                            : 'Échéance: ${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        final DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate ?? DateTime.now(),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(2101),
+                        );
+                        if (picked != null && picked != selectedDate) {
+                          setDialogState(() {
+                            selectedDate = picked;
+                          });
+                        }
+                      },
+                      child: const Text('Modifier'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (titleController.text.trim().isNotEmpty) {
+                    final updatedTodo = todo.copyWith(
+                      title: titleController.text.trim(),
+                      description: descriptionController.text.trim(),
+                      dueDate: selectedDate,
+                      priority: selectedPriority.label,
+                    );
+                    todoProvider.updateTodo(updatedTodo);
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text('Modifier'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showDeleteDialog(String todoId, TodoProvider todoProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer la tâche'),
+        content: const Text('Êtes-vous sûr de vouloir supprimer cette tâche ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              todoProvider.deleteTodo(todoId);
+              Navigator.pop(context);
+            },
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAllCompletedDialog(TodoProvider todoProvider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer les tâches terminées'),
+        content: Text(
+          'Êtes-vous sûr de vouloir supprimer les ${todoProvider.completedTodos.length} tâche(s) terminée(s) ?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              todoProvider.deleteCompletedTodos();
+              Navigator.pop(context);
+            },
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Déconnexion'),
+        content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              context.read<TodoProvider>().stopListening();
+              context.read<AuthProvider>().signOut();
+              Navigator.pop(context);
+            },
+            child: const Text('Déconnexion'),
+          ),
+        ],
+      ),
+    );
+  }
+}
