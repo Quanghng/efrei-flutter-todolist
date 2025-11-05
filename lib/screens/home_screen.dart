@@ -188,6 +188,23 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: AppColors.primaryRose,
             foregroundColor: Colors.white,
             elevation: 0,
+            shadowColor: AppColors.grey400.withOpacity(0.3),
+            surfaceTintColor: Colors.transparent,
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(0),
+              child: Container(
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.grey400.withOpacity(0.2),
+                      blurRadius: 8,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 2), // Ombre en bas uniquement
+                    ),
+                  ],
+                ),
+              ),
+            ),
             actions: [
               // Statistiques
               Consumer<TodoProvider>(
@@ -247,27 +264,30 @@ class _HomeScreenState extends State<HomeScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return Column(
+          return Stack(
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    // Sidebar gauche - Recherche et filtres
-                    _buildLeftSidebar(todoProvider),
-                    
-                    // Zone centrale - Grille de tâches
-                    Expanded(
-                      child: Column(
-                        children: [
-                          // Grille de tâches ou état vide
-                          Expanded(
-                            child: filteredTodos.isEmpty
-                                ? _buildEmptyState()
-                                : LayoutBuilder(
-                                    builder: (context, constraints) {
-                                      // Responsive: ajuster le nombre de colonnes selon la largeur
-                                      int crossAxisCount = 2;
-                                      double maxCrossAxisExtent = 300;
+              // Contenu principal
+              Column(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        // Sidebar gauche - Recherche et filtres
+                        _buildLeftSidebar(todoProvider),
+                        
+                        // Zone centrale - Grille de tâches
+                        Expanded(
+                          child: Column(
+                            children: [
+                              // Grille de tâches ou état vide
+                              Expanded(
+                                child: filteredTodos.isEmpty
+                                    ? _buildEmptyState()
+                                    : LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          // Responsive: ajuster le nombre de colonnes selon la largeur
+                                          int crossAxisCount = 2;
+                                          double maxCrossAxisExtent = 300;
                                       if (constraints.maxWidth > 1200) {
                                         maxCrossAxisExtent = 280;
                                       } else if (constraints.maxWidth > 800) {
@@ -292,19 +312,29 @@ class _HomeScreenState extends State<HomeScreen> {
                                       );
                                     },
                                   ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        
+                        // Sidebar droite - Formulaire de création
+                        _buildRightSidebar(todoProvider),
+                      ],
                     ),
-                    
-                    // Sidebar droite - Formulaire de création
-                    _buildRightSidebar(todoProvider),
-                  ],
-                ),
+                  ),
+                  
+                  // Espace pour le footer
+                  const SizedBox(height: 64),
+                ],
               ),
               
-              // Footer de navigation
-              _buildBottomNavigationBar(),
+              // Footer de navigation (z-index plus bas)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: _buildBottomNavigationBar(),
+              ),
             ],
           );
         },
@@ -321,9 +351,10 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: AppColors.grey400.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(2, 0),
+            color: AppColors.grey400.withOpacity(0.15),
+            blurRadius: 10,
+            spreadRadius: 0,
+            offset: const Offset(2, 0), // Ombre à droite uniquement
           ),
         ],
       ),
@@ -462,9 +493,10 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: AppColors.grey400.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(-2, 0),
+            color: AppColors.grey400.withOpacity(0.15),
+            blurRadius: 10,
+            spreadRadius: 0,
+            offset: const Offset(-2, 0), // Ombre à gauche uniquement
           ),
         ],
       ),
@@ -493,19 +525,13 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Titre
-            Row(
-              children: [
-                Icon(PhosphorIconsBold.plus, color: AppColors.primaryRose, size: 24),
-                const SizedBox(width: 12),
-                Text(
-                  'Création de tâche',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryRose,
-                  ),
-                ),
-              ],
+            Text(
+              'Création de tâche',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryRose,
+              ),
             ),
             
             const SizedBox(height: 24),
@@ -882,25 +908,24 @@ class _HomeScreenState extends State<HomeScreen> {
         boxShadow: [
           BoxShadow(
             color: AppColors.grey400.withOpacity(0.2),
-            blurRadius: 12,
-            offset: const Offset(0, -4),
+            blurRadius: 10,
+            spreadRadius: 0,
+            offset: const Offset(0, -2), // Ombre en haut uniquement
           ),
         ],
       ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            Expanded(
-              child: _buildNavButton('Toutes', 'all', PhosphorIconsBold.listChecks),
-            ),
-            Expanded(
-              child: _buildNavButton('En cours', 'pending', PhosphorIconsBold.clockCountdown),
-            ),
-            Expanded(
-              child: _buildNavButton('Terminées', 'completed', PhosphorIconsBold.checkCircle),
-            ),
-          ],
-        ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildNavButton('Toutes', 'all', PhosphorIconsBold.listChecks),
+          ),
+          Expanded(
+            child: _buildNavButton('En cours', 'pending', PhosphorIconsBold.clockCountdown),
+          ),
+          Expanded(
+            child: _buildNavButton('Terminées', 'completed', PhosphorIconsBold.checkCircle),
+          ),
+        ],
       ),
     );
   }
