@@ -1,20 +1,34 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/todo.dart';
 
 class TodoProvider with ChangeNotifier {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+
+  TodoProvider({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
+
   List<Todo> _todos = [];
+  List<Todo> _publicTodos = []; // Nouvelle liste pour les todos publics
   bool _isLoading = false;
   String? _errorMessage;
+  StreamSubscription<QuerySnapshot>? _todosSubscription;
+  StreamSubscription<QuerySnapshot>? _publicTodosSubscription;
 
   // Getters
   List<Todo> get todos => _todos;
-  List<Todo> get completedTodos => _todos.where((todo) => todo.isCompleted).toList();
-  List<Todo> get pendingTodos => _todos.where((todo) => !todo.isCompleted).toList();
+  List<Todo> get completedTodos =>
+      _todos.where((todo) => todo.isCompleted).toList();
+  List<Todo> get pendingTodos =>
+      _todos.where((todo) => !todo.isCompleted).toList();
+  List<Todo> get publicTodos => _publicTodos; // Nouveau getter
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   int get totalTodos => _todos.length;
@@ -23,32 +37,83 @@ class TodoProvider with ChangeNotifier {
 
   // Écouter les changements en temps réel
   void startListening() {
+    stopListening();
     final user = _auth.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      print('TodoProvider: Aucun utilisateur connecté');
+      return;
+    }
 
-    _firestore
+    print('TodoProvider: Début de l\'écoute pour l\'utilisateur ${user.uid}');
+
+    // Écouter les todos de l'utilisateur
+    _todosSubscription = _firestore
         .collection('todos')
         .where('userId', isEqualTo: user.uid)
-        .orderBy('createdAt', descending: true)
+        // Temporairement commenté en attendant la création de l'index
+        // .orderBy('createdAt', descending: true)
         .snapshots()
-        .listen((snapshot) {
-      _todos = snapshot.docs.map((doc) {
-        return Todo.fromMap(doc.data());
-      }).toList();
-      notifyListeners();
-    }, onError: (error) {
-      _setError('Erreur lors du chargement des todos: $error');
-    });
+        .listen(
+          (snapshot) {
+            print('TodoProvider: Reçu ${snapshot.docs.length} todos');
+            var todosList = snapshot.docs.map((doc) {
+              print('TodoProvider: Todo reçu - ${doc.id}: ${doc.data()}');
+              return Todo.fromMap(doc.data());
+            }).toList();
+
+            // Tri côté client en attendant l'index
+            todosList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            _todos = todosList;
+            notifyListeners();
+          },
+          onError: (error) {
+            print('TodoProvider: Erreur lors de l\'écoute - $error');
+            _setError('Erreur lors du chargement des todos: $error');
+          },
+        );
+    
+    // Écouter les todos publics de tous les utilisateurs
+    _publicTodosSubscription = _firestore
+        .collection('todos')
+        .where('isPublic', isEqualTo: true)
+        .snapshots()
+        .listen(
+          (snapshot) {
+            print('TodoProvider: Reçu ${snapshot.docs.length} todos publics');
+            var publicTodosList = snapshot.docs.map((doc) {
+              return Todo.fromMap(doc.data());
+            }).toList();
+
+            // Tri par date de création
+            publicTodosList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            _publicTodos = publicTodosList;
+            notifyListeners();
+          },
+          onError: (error) {
+            print('TodoProvider: Erreur lors de l\'écoute des todos publics - $error');
+          },
+        );
   }
 
   // Arrêter l'écoute
   void stopListening() {
+    _todosSubscription?.cancel();
+    _publicTodosSubscription?.cancel();
+    _todosSubscription = null;
+    _publicTodosSubscription = null;
     _todos = [];
+    _publicTodos = [];
     notifyListeners();
   }
 
   // Ajouter un todo
-  Future<bool> addTodo(String title, String description) async {
+  Future<bool> addTodo(
+    String title,
+    String description,
+    DateTime? dueDate, [
+    String priority = 'moyen',
+    bool isPublic = false, // Nouveau paramètre
+  ]) async {
     final user = _auth.currentUser;
     if (user == null) {
       _setError('Utilisateur non connecté');
@@ -67,13 +132,23 @@ class TodoProvider with ChangeNotifier {
         isCompleted: false,
         createdAt: DateTime.now(),
         userId: user.uid,
+        priority: priority,
+        dueDate: dueDate,
+        isPublic: isPublic, // Ajouté
       );
+
+      print(
+        'TodoProvider: Ajout du todo ${todoId} pour l\'utilisateur ${user.uid}',
+      );
+      print('TodoProvider: Données du todo - ${todo.toMap()}');
 
       await _firestore.collection('todos').doc(todoId).set(todo.toMap());
 
+      print('TodoProvider: Todo ajouté avec succès');
       _setLoading(false);
       return true;
     } catch (e) {
+      print('TodoProvider: Erreur lors de l\'ajout - $e');
       _setLoading(false);
       _setError('Erreur lors de l\'ajout: $e');
       return false;
@@ -157,10 +232,10 @@ class TodoProvider with ChangeNotifier {
   // Rechercher des todos
   List<Todo> searchTodos(String query) {
     if (query.isEmpty) return _todos;
-    
+
     return _todos.where((todo) {
       return todo.title.toLowerCase().contains(query.toLowerCase()) ||
-             todo.description.toLowerCase().contains(query.toLowerCase());
+          todo.description.toLowerCase().contains(query.toLowerCase());
     }).toList();
   }
 
@@ -190,7 +265,9 @@ class TodoProvider with ChangeNotifier {
       'total': totalTodos,
       'completed': completedCount,
       'pending': pendingCount,
-      'completionRate': totalTodos > 0 ? (completedCount / totalTodos * 100).round() : 0,
+      'completionRate': totalTodos > 0
+          ? (completedCount / totalTodos * 100).round()
+          : 0,
     };
   }
 }

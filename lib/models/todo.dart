@@ -6,6 +6,9 @@ class Todo {
   final DateTime createdAt;
   final DateTime? completedAt;
   final String userId;
+  final String priority;
+  final DateTime? dueDate;
+  final bool isPublic; // Nouveau champ
 
   Todo({
     required this.id,
@@ -15,6 +18,9 @@ class Todo {
     required this.createdAt,
     this.completedAt,
     required this.userId,
+    required this.priority,
+    this.dueDate,
+    this.isPublic = false, // Privé par défaut
   });
 
   // Convertir en Map pour Firestore
@@ -27,6 +33,9 @@ class Todo {
       'createdAt': createdAt.millisecondsSinceEpoch,
       'completedAt': completedAt?.millisecondsSinceEpoch,
       'userId': userId,
+      'priority': priority,
+      'dueDate': dueDate?.millisecondsSinceEpoch,
+      'isPublic': isPublic, // Ajouté
     };
   }
 
@@ -42,6 +51,11 @@ class Todo {
           ? DateTime.fromMillisecondsSinceEpoch(map['completedAt'])
           : null,
       userId: map['userId'] ?? '',
+      priority: map['priority'] ?? 'moyen',
+      dueDate: map['dueDate'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(map['dueDate'])
+          : null,
+      isPublic: map['isPublic'] ?? false, // Ajouté
     );
   }
 
@@ -54,6 +68,9 @@ class Todo {
     DateTime? createdAt,
     DateTime? completedAt,
     String? userId,
+    String? priority,
+    DateTime? dueDate,
+    bool? isPublic, // Ajouté
   }) {
     return Todo(
       id: id ?? this.id,
@@ -63,12 +80,15 @@ class Todo {
       createdAt: createdAt ?? this.createdAt,
       completedAt: completedAt ?? this.completedAt,
       userId: userId ?? this.userId,
+      priority: priority ?? this.priority,
+      dueDate: dueDate ?? this.dueDate,
+      isPublic: isPublic ?? this.isPublic, // Ajouté
     );
   }
 
   @override
   String toString() {
-    return 'Todo(id: $id, title: $title, isCompleted: $isCompleted)';
+    return 'Todo(id: $id, title: $title, isCompleted: $isCompleted, priority: $priority, dueDate: $dueDate)';
   }
 
   @override

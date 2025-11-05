@@ -1,4 +1,4 @@
-# Configuration Firebase - EFREI TodoList
+# Configuration Firebase - EFREI Taskip
 
 ## Accès au projet Firebase
 

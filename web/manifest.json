@@ -1,11 +1,11 @@
 {
-    "name": "efrei_todolist",
-    "short_name": "efrei_todolist",
+    "name": "Taskip - TodoList EFREI",
+    "short_name": "Taskip",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#B26E63",
+    "theme_color": "#B26E63",
+    "description": "Gérez vos tâches avec élégance. Application TodoList moderne pour rester productif au quotidien.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
