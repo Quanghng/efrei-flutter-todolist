@@ -276,7 +276,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       }
                                       
                                       return GridView.builder(
-                                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                                        padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
                                         gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                                           maxCrossAxisExtent: maxCrossAxisExtent,
                                           crossAxisSpacing: 12,
