@@ -840,32 +840,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   elevation: 2,
                 ),
                 onPressed: () {
-                  if (titleController.text.trim().isNotEmpty) {
-                    todoProvider.addTodo(
-                      titleController.text.trim(),
-                      descriptionController.text.trim(),
-                      selectedDate,
-                      selectedPriority.label.toLowerCase(),
-                      isPublic, // Paramètre activé
+                  if (titleController.text.trim().isEmpty) return;
+                  
+                  // Si la tâche est publique, afficher une confirmation
+                  if (isPublic) {
+                    _showPublicTaskWarning(
+                      context,
+                      () {
+                        // Callback pour créer la tâche après confirmation
+                        _createTodo(
+                          todoProvider,
+                          titleController,
+                          descriptionController,
+                          selectedDate,
+                          selectedPriority,
+                          isPublic,
+                          setFormState,
+                        );
+                      },
                     );
-                    
-                    // Capturer la valeur avant de réinitialiser
-                    final wasPublic = isPublic;
-                    
-                    titleController.clear();
-                    descriptionController.clear();
-                    setFormState(() {
-                      selectedPriority = Priority.moyen;
-                      selectedDate = null;
-                      isPublic = false; // Réinitialiser à privé
-                    });
-                    
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(wasPublic ? 'Tâche publique créée avec succès !' : 'Tâche créée avec succès !'),
-                        backgroundColor: AppColors.success,
-                        duration: Duration(seconds: 2),
-                      ),
+                  } else {
+                    // Créer directement si privé
+                    _createTodo(
+                      todoProvider,
+                      titleController,
+                      descriptionController,
+                      selectedDate,
+                      selectedPriority,
+                      isPublic,
+                      setFormState,
                     );
                   }
                 },
@@ -2177,6 +2180,147 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // Méthode pour créer une tâche
+  void _createTodo(
+    TodoProvider todoProvider,
+    TextEditingController titleController,
+    TextEditingController descriptionController,
+    DateTime? selectedDate,
+    Priority selectedPriority,
+    bool isPublic,
+    StateSetter setFormState,
+  ) {
+    // Capturer la valeur avant de réinitialiser
+    final wasPublic = isPublic;
+    
+    todoProvider.addTodo(
+      titleController.text.trim(),
+      descriptionController.text.trim(),
+      selectedDate,
+      selectedPriority.label.toLowerCase(),
+      isPublic,
+    );
+    
+    titleController.clear();
+    descriptionController.clear();
+    setFormState(() {
+      // Réinitialiser à privé (la réinitialisation de selectedPriority et selectedDate 
+      // sera gérée dans le StatefulBuilder parent si nécessaire)
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(wasPublic ? 'Tâche publique créée avec succès !' : 'Tâche créée avec succès !'),
+        backgroundColor: AppColors.success,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  // Popup d'avertissement pour les tâches publiques
+  void _showPublicTaskWarning(BuildContext context, VoidCallback onConfirm) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(PhosphorIconsBold.warningCircle, color: AppColors.accentOrange, size: 28),
+            SizedBox(width: 12),
+            Text(
+              'Tâche publique',
+              style: TextStyle(
+                color: AppColors.accentOrange,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Vous êtes sur le point de créer une tâche publique.',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.grey800,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.accentOrange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.accentOrange.withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    PhosphorIconsBold.globe,
+                    color: AppColors.accentOrange,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Cette tâche sera visible par tous les utilisateurs de l\'application dans l\'onglet Communauté.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.grey700,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Êtes-vous sûr de vouloir continuer ?',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.grey700,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Annuler',
+              style: TextStyle(color: AppColors.grey700, fontSize: 15),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accentOrange,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              onConfirm();
+            },
+            child: Text(
+              'Créer en public',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
+          ),
+        ],
       ),
     );
   }
