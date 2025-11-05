@@ -1,3 +1,4 @@
+import 'package:efrei_todolist/screens/calendar_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -1947,7 +1948,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       title: titleController.text.trim(),
                       description: descriptionController.text.trim(),
                       dueDate: selectedDate,
-                      priority: selectedPriority,
+                      priority: selectedPriority.label,
                     );
                     todoProvider.updateTodo(updatedTodo);
                     Navigator.pop(context);

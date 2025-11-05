@@ -55,6 +55,9 @@ dependencies:
   # URL launcher
   url_launcher: ^6.3.1
 
+  # Calendrier 
+  table_calendar: ^3.0.9
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -62,6 +65,8 @@ dev_dependencies:
   fake_cloud_firestore: ^3.1.0
   mockito: ^5.4.4
   build_runner: ^2.4.7
+  integration_test:
+    sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
