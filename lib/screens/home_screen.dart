@@ -32,11 +32,31 @@ enum Priority {
 }
 
 enum SortOption {
-  dateDesc('Date (récent → ancien)', 'date', true, PhosphorIconsBold.calendarBlank),
+  dateDesc(
+    'Date (récent → ancien)',
+    'date',
+    true,
+    PhosphorIconsBold.calendarBlank,
+  ),
   dateAsc('Date (ancien → récent)', 'date', false, PhosphorIconsBold.calendar),
-  priorityDesc('Priorité (fort → faible)', 'priority', true, PhosphorIconsBold.arrowUp),
-  priorityAsc('Priorité (faible → fort)', 'priority', false, PhosphorIconsBold.arrowDown),
-  statusPendingFirst('Statut (en attente → terminé)', 'status', false, PhosphorIconsBold.checkCircle);
+  priorityDesc(
+    'Priorité (fort → faible)',
+    'priority',
+    true,
+    PhosphorIconsBold.arrowUp,
+  ),
+  priorityAsc(
+    'Priorité (faible → fort)',
+    'priority',
+    false,
+    PhosphorIconsBold.arrowDown,
+  ),
+  statusPendingFirst(
+    'Statut (en attente → terminé)',
+    'status',
+    false,
+    PhosphorIconsBold.checkCircle,
+  );
 
   const SortOption(this.label, this.type, this.descending, this.icon);
   final String label;
@@ -188,6 +208,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.white,
                   ),
                 ),
+                const SizedBox(width: 23),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (context) => const CalendarScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'Calendrier',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                ),
               ],
             ),
             backgroundColor: AppColors.primaryRose,
@@ -199,8 +234,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 builder: (context, todoProvider, _) {
                   final stats = todoProvider.getStatistics();
                   return Container(
-                    margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    margin: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 8,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
@@ -228,7 +269,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? IconButton(
                           icon: Icon(PhosphorIconsBold.trash),
                           tooltip: 'Supprimer les tâches terminées',
-                          onPressed: () => _showDeleteAllCompletedDialog(todoProvider),
+                          onPressed: () =>
+                              _showDeleteAllCompletedDialog(todoProvider),
                         )
                       : const SizedBox.shrink();
                 },
@@ -244,65 +286,75 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 8),
             ],
           ),
-      body: Builder(
-        builder: (context) {
-          final filteredTodos = _getFilteredTodos(todoProvider);
+          body: Builder(
+            builder: (context) {
+              final filteredTodos = _getFilteredTodos(todoProvider);
 
-          if (todoProvider.isLoading && todoProvider.todos.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
+              if (todoProvider.isLoading && todoProvider.todos.isEmpty) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          return Column(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    // Sidebar gauche - Recherche et filtres
-                    _buildLeftSidebar(todoProvider),
-                    
-                    // Zone centrale - Grille de tâches
-                    Expanded(
-                      child: Column(
-                        children: [
-                          // Grille de tâches ou état vide
-                          Expanded(
-                            child: filteredTodos.isEmpty
-                                ? _buildEmptyState()
-                                : LayoutBuilder(
-                                    builder: (context, constraints) {
-                                      // Responsive: ajuster le nombre de colonnes selon la largeur
-                                      int crossAxisCount = 2;
-                                      if (constraints.maxWidth > 1200) {
-                                        crossAxisCount = 3;
-                                      } else if (constraints.maxWidth > 800) {
-                                        crossAxisCount = 2;
-                                      } else {
-                                        crossAxisCount = 1;
-                                      }
-                                      
-                                      return SingleChildScrollView(
-                                        padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-                                        child: _buildMasonryGrid(filteredTodos, crossAxisCount, todoProvider),
-                                      );
-                                    },
-                                  ),
+              return Column(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        // Sidebar gauche - Recherche et filtres
+                        _buildLeftSidebar(todoProvider),
+
+                        // Zone centrale - Grille de tâches
+                        Expanded(
+                          child: Column(
+                            children: [
+                              // Grille de tâches ou état vide
+                              Expanded(
+                                child: filteredTodos.isEmpty
+                                    ? _buildEmptyState()
+                                    : LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          // Responsive: ajuster le nombre de colonnes selon la largeur
+                                          int crossAxisCount = 2;
+                                          if (constraints.maxWidth > 1200) {
+                                            crossAxisCount = 3;
+                                          } else if (constraints.maxWidth >
+                                              800) {
+                                            crossAxisCount = 2;
+                                          } else {
+                                            crossAxisCount = 1;
+                                          }
+
+                                          return SingleChildScrollView(
+                                            padding: const EdgeInsets.fromLTRB(
+                                              16,
+                                              20,
+                                              16,
+                                              16,
+                                            ),
+                                            child: _buildMasonryGrid(
+                                              filteredTodos,
+                                              crossAxisCount,
+                                              todoProvider,
+                                            ),
+                                          );
+                                        },
+                                      ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+
+                        // Sidebar droite - Formulaire de création
+                        _buildRightSidebar(todoProvider),
+                      ],
                     ),
-                    
-                    // Sidebar droite - Formulaire de création
-                    _buildRightSidebar(todoProvider),
-                  ],
-                ),
-              ),
-              
-              // Footer de navigation
-              _buildBottomNavigationBar(),
-            ],
-          );
-        },
-      ),
+                  ),
+
+                  // Footer de navigation
+                  _buildBottomNavigationBar(),
+                ],
+              );
+            },
+          ),
         );
       },
     );
@@ -366,7 +418,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          
+
           // Barre de recherche
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -375,10 +427,18 @@ class _HomeScreenState extends State<HomeScreen> {
               decoration: InputDecoration(
                 hintText: 'Rechercher...',
                 hintStyle: TextStyle(color: AppColors.grey500, fontSize: 14),
-                prefixIcon: Icon(PhosphorIconsBold.magnifyingGlass, color: AppColors.primaryRose, size: 20),
+                prefixIcon: Icon(
+                  PhosphorIconsBold.magnifyingGlass,
+                  color: AppColors.primaryRose,
+                  size: 20,
+                ),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: Icon(PhosphorIconsBold.x, color: AppColors.grey600, size: 18),
+                        icon: Icon(
+                          PhosphorIconsBold.x,
+                          color: AppColors.grey600,
+                          size: 18,
+                        ),
                         onPressed: () {
                           _searchController.clear();
                         },
@@ -394,18 +454,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
+                  borderSide: BorderSide(
+                    color: AppColors.primaryRose,
+                    width: 2,
+                  ),
                 ),
                 filled: true,
                 fillColor: AppColors.grey100,
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
                 isDense: true,
               ),
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Section Tri
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -418,9 +484,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // Options de tri
           _buildSortItem(SortOption.dateDesc),
           _buildSortItem(SortOption.dateAsc),
@@ -429,7 +495,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // Afficher le filtre par statut seulement sur "Toutes les tâches"
           if (_selectedIndex == 0)
             _buildSortItem(SortOption.statusPendingFirst),
-          
+
           const Spacer(),
         ],
       ),
@@ -448,7 +514,9 @@ class _HomeScreenState extends State<HomeScreen> {
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryRose.withOpacity(0.1) : Colors.transparent,
+          color: isSelected
+              ? AppColors.primaryRose.withOpacity(0.1)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppColors.primaryRose : Colors.transparent,
@@ -526,9 +594,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: AppColors.primaryRose,
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Champ Titre
             Text(
               'Titre *',
@@ -554,16 +622,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
+                  borderSide: BorderSide(
+                    color: AppColors.primaryRose,
+                    width: 2,
+                  ),
                 ),
                 filled: true,
                 fillColor: AppColors.grey100,
                 contentPadding: EdgeInsets.all(12),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Champ Description
             Text(
               'Description',
@@ -590,16 +661,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
+                  borderSide: BorderSide(
+                    color: AppColors.primaryRose,
+                    width: 2,
+                  ),
                 ),
                 filled: true,
                 fillColor: AppColors.grey100,
                 contentPadding: EdgeInsets.all(12),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Priorité
             Text(
               'Priorité *',
@@ -664,9 +738,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               }).toList(),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Date d'échéance
             Text(
               'Date d\'échéance',
@@ -712,14 +786,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: Row(
                   children: [
-                    Icon(PhosphorIconsBold.calendar, color: AppColors.primaryRose, size: 20),
+                    Icon(
+                      PhosphorIconsBold.calendar,
+                      color: AppColors.primaryRose,
+                      size: 20,
+                    ),
                     const SizedBox(width: 12),
                     Text(
                       selectedDate == null
                           ? 'Choisir une date'
                           : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
                       style: TextStyle(
-                        color: selectedDate == null ? AppColors.grey600 : AppColors.black,
+                        color: selectedDate == null
+                            ? AppColors.grey600
+                            : AppColors.black,
                         fontSize: 14,
                       ),
                     ),
@@ -727,9 +807,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Accessibilité
             Text(
               'Accessibilité',
@@ -753,10 +833,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: !isPublic ? AppColors.primaryRose : Colors.transparent,
+                        color: !isPublic
+                            ? AppColors.primaryRose
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: !isPublic ? AppColors.primaryRose : AppColors.grey300,
+                          color: !isPublic
+                              ? AppColors.primaryRose
+                              : AppColors.grey300,
                           width: 2,
                         ),
                       ),
@@ -772,8 +856,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           Text(
                             'Privé',
                             style: TextStyle(
-                              color: !isPublic ? Colors.white : AppColors.grey700,
-                              fontWeight: !isPublic ? FontWeight.bold : FontWeight.w500,
+                              color: !isPublic
+                                  ? Colors.white
+                                  : AppColors.grey700,
+                              fontWeight: !isPublic
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
                               fontSize: 14,
                             ),
                           ),
@@ -794,10 +882,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: isPublic ? AppColors.primaryRose : Colors.transparent,
+                        color: isPublic
+                            ? AppColors.primaryRose
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isPublic ? AppColors.primaryRose : AppColors.grey300,
+                          color: isPublic
+                              ? AppColors.primaryRose
+                              : AppColors.grey300,
                           width: 2,
                         ),
                       ),
@@ -813,8 +905,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           Text(
                             'Public',
                             style: TextStyle(
-                              color: isPublic ? Colors.white : AppColors.grey700,
-                              fontWeight: isPublic ? FontWeight.bold : FontWeight.w500,
+                              color: isPublic
+                                  ? Colors.white
+                                  : AppColors.grey700,
+                              fontWeight: isPublic
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
                               fontSize: 14,
                             ),
                           ),
@@ -825,9 +921,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Bouton Créer
             SizedBox(
               width: double.infinity,
@@ -843,24 +939,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 onPressed: () {
                   if (titleController.text.trim().isEmpty) return;
-                  
+
                   // Si la tâche est publique, afficher une confirmation
                   if (isPublic) {
-                    _showPublicTaskWarning(
-                      context,
-                      () {
-                        // Callback pour créer la tâche après confirmation
-                        _createTodo(
-                          todoProvider,
-                          titleController,
-                          descriptionController,
-                          selectedDate,
-                          selectedPriority,
-                          isPublic,
-                          setFormState,
-                        );
-                      },
-                    );
+                    _showPublicTaskWarning(context, () {
+                      // Callback pour créer la tâche après confirmation
+                      _createTodo(
+                        todoProvider,
+                        titleController,
+                        descriptionController,
+                        selectedDate,
+                        selectedPriority,
+                        isPublic,
+                        setFormState,
+                      );
+                    });
                   } else {
                     // Créer directement si privé
                     _createTodo(
@@ -967,11 +1060,23 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildStatItemCompact('Total', stats['total'].toString(), AppColors.primaryRose),
+            _buildStatItemCompact(
+              'Total',
+              stats['total'].toString(),
+              AppColors.primaryRose,
+            ),
             Container(width: 1, height: 30, color: AppColors.grey300),
-            _buildStatItemCompact('Terminées', stats['completed'].toString(), AppColors.success),
+            _buildStatItemCompact(
+              'Terminées',
+              stats['completed'].toString(),
+              AppColors.success,
+            ),
             Container(width: 1, height: 30, color: AppColors.grey300),
-            _buildStatItemCompact('En cours', stats['pending'].toString(), AppColors.warning),
+            _buildStatItemCompact(
+              'En cours',
+              stats['pending'].toString(),
+              AppColors.warning,
+            ),
           ],
         ),
       ),
@@ -991,13 +1096,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: AppColors.grey600,
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 11, color: AppColors.grey600)),
       ],
     );
   }
@@ -1018,16 +1117,32 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Row(
           children: [
             Expanded(
-              child: _buildNavButton('Toutes', 'all', PhosphorIconsBold.listChecks),
+              child: _buildNavButton(
+                'Toutes',
+                'all',
+                PhosphorIconsBold.listChecks,
+              ),
             ),
             Expanded(
-              child: _buildNavButton('En cours', 'pending', PhosphorIconsBold.clockCountdown),
+              child: _buildNavButton(
+                'En cours',
+                'pending',
+                PhosphorIconsBold.clockCountdown,
+              ),
             ),
             Expanded(
-              child: _buildNavButton('Terminées', 'completed', PhosphorIconsBold.checkCircle),
+              child: _buildNavButton(
+                'Terminées',
+                'completed',
+                PhosphorIconsBold.checkCircle,
+              ),
             ),
             Expanded(
-              child: _buildNavButton('Communauté', 'community', PhosphorIconsBold.users),
+              child: _buildNavButton(
+                'Communauté',
+                'community',
+                PhosphorIconsBold.users,
+              ),
             ),
           ],
         ),
@@ -1092,8 +1207,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final bool isOverdue =
         todo.dueDate != null &&
         !todo.isCompleted &&
-        todo.dueDate!.isBefore(DateTime.now().subtract(const Duration(days: 1)));
-    
+        todo.dueDate!.isBefore(
+          DateTime.now().subtract(const Duration(days: 1)),
+        );
+
     // Calculer les jours restants
     int? daysRemaining;
     if (todo.dueDate != null && !todo.isCompleted) {
@@ -1106,10 +1223,7 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: priority.color.withOpacity(0.3),
-            width: 2,
-          ),
+          border: Border.all(color: priority.color.withOpacity(0.3), width: 2),
           boxShadow: [
             BoxShadow(
               color: priority.color.withOpacity(0.15),
@@ -1130,7 +1244,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Badge "Public" si la tâche est publique
                   if (todo.isPublic) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.accentOrange,
                         borderRadius: BorderRadius.circular(8),
@@ -1159,7 +1276,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                   // Badge de priorité
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: priority.color,
                       borderRadius: BorderRadius.circular(8),
@@ -1176,7 +1296,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            
+
             // Boutons d'action en haut à gauche
             Positioned(
               top: 8,
@@ -1219,7 +1339,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            
+
             // Contenu de la carte
             Padding(
               padding: const EdgeInsets.all(16),
@@ -1228,7 +1348,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(height: 30), // Espace pour les badges
-                  
                   // Checkbox
                   Row(
                     children: [
@@ -1248,8 +1367,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
-                            color: todo.isCompleted ? AppColors.grey500 : AppColors.black,
+                            decoration: todo.isCompleted
+                                ? TextDecoration.lineThrough
+                                : null,
+                            color: todo.isCompleted
+                                ? AppColors.grey500
+                                : AppColors.black,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -1257,30 +1380,39 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 8),
-                  
+
                   // Description
                   if (todo.description.isNotEmpty) ...[
                     Text(
                       todo.description,
                       style: TextStyle(
                         fontSize: 13,
-                        color: todo.isCompleted ? AppColors.grey500 : AppColors.grey700,
-                        decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
+                        color: todo.isCompleted
+                            ? AppColors.grey500
+                            : AppColors.grey700,
+                        decoration: todo.isCompleted
+                            ? TextDecoration.lineThrough
+                            : null,
                       ),
                       maxLines: 4,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 12),
                   ],
-                  
+
                   // Date d'échéance avec jours restants
                   if (todo.dueDate != null)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: isOverdue ? AppColors.error.withOpacity(0.1) : AppColors.grey100,
+                        color: isOverdue
+                            ? AppColors.error.withOpacity(0.1)
+                            : AppColors.grey100,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
@@ -1288,7 +1420,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Icon(
                             PhosphorIconsBold.clock,
-                            color: isOverdue ? AppColors.error : AppColors.grey600,
+                            color: isOverdue
+                                ? AppColors.error
+                                : AppColors.grey600,
                             size: 14,
                           ),
                           const SizedBox(width: 4),
@@ -1296,8 +1430,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             _formatDate(todo.dueDate!),
                             style: TextStyle(
                               fontSize: 11,
-                              color: isOverdue ? AppColors.error : AppColors.grey700,
-                              fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
+                              color: isOverdue
+                                  ? AppColors.error
+                                  : AppColors.grey700,
+                              fontWeight: isOverdue
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                           if (daysRemaining != null && !isOverdue) ...[
@@ -1306,17 +1444,21 @@ class _HomeScreenState extends State<HomeScreen> {
                               '(${daysRemaining > 0 ? "$daysRemaining jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''}" : "Aujourd'hui"})',
                               style: TextStyle(
                                 fontSize: 10,
-                                color: daysRemaining <= 1 ? AppColors.warning : AppColors.grey600,
-                                fontWeight: daysRemaining <= 1 ? FontWeight.bold : FontWeight.normal,
+                                color: daysRemaining <= 1
+                                    ? AppColors.warning
+                                    : AppColors.grey600,
+                                fontWeight: daysRemaining <= 1
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
                             ),
                           ],
                         ],
                       ),
                     ),
-                  
+
                   const SizedBox(height: 8),
-                  
+
                   // Date de création
                   Text(
                     'Créé le ${_formatDate(todo.createdAt)}',
@@ -1347,13 +1489,7 @@ class _HomeScreenState extends State<HomeScreen> {
             color: color,
           ),
         ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: AppColors.grey600,
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: AppColors.grey600)),
       ],
     );
   }
@@ -1434,7 +1570,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     decoration: todo.isCompleted
                         ? TextDecoration.lineThrough
                         : null,
-                    color: todo.isCompleted ? AppColors.grey500 : AppColors.grey700,
+                    color: todo.isCompleted
+                        ? AppColors.grey500
+                        : AppColors.grey700,
                   ),
                 ),
               ],
@@ -1478,65 +1616,68 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Priorité
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: priority.color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: priority.color.withOpacity(0.3)),
-              ),
-              child: Text(
-                priority.label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: priority.color,
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Priorité
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: priority.color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: priority.color.withOpacity(0.3)),
                 ),
-              ),
-            ),
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                switch (value) {
-                  case 'edit':
-                    _showEditTodoDialog(todo, todoProvider);
-                    break;
-                  case 'delete':
-                    _showDeleteDialog(todo.id, todoProvider);
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'edit',
-                  child: Row(
-                    children: [
-                      Icon(PhosphorIconsBold.pencil, color: AppColors.primaryRose),
-                      SizedBox(width: 8),
-                      Text('Modifier'),
-                    ],
+                child: Text(
+                  priority.label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: priority.color,
                   ),
                 ),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(PhosphorIconsBold.trash, color: AppColors.error),
-                      SizedBox(width: 8),
-                      Text('Supprimer'),
-                    ],
+              ),
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  switch (value) {
+                    case 'edit':
+                      _showEditTodoDialog(todo, todoProvider);
+                      break;
+                    case 'delete':
+                      _showDeleteDialog(todo.id, todoProvider);
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(
+                          PhosphorIconsBold.pencil,
+                          color: AppColors.primaryRose,
+                        ),
+                        SizedBox(width: 8),
+                        Text('Modifier'),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(PhosphorIconsBold.trash, color: AppColors.error),
+                        SizedBox(width: 8),
+                        Text('Supprimer'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 
@@ -1554,7 +1695,9 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Row(
             children: [
               Icon(PhosphorIconsBold.plus, color: AppColors.primaryRose),
@@ -1586,7 +1729,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
+                    borderSide: BorderSide(
+                      color: AppColors.primaryRose,
+                      width: 2,
+                    ),
                   ),
                 ),
                 autofocus: true,
@@ -1607,7 +1753,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
+                    borderSide: BorderSide(
+                      color: AppColors.primaryRose,
+                      width: 2,
+                    ),
                   ),
                 ),
                 maxLines: 3,
@@ -1764,7 +1913,9 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
             title: Row(
               children: [
                 Icon(PhosphorIconsBold.pencil, color: AppColors.primaryRose),
@@ -1796,7 +1947,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
+                      borderSide: BorderSide(
+                        color: AppColors.primaryRose,
+                        width: 2,
+                      ),
                     ),
                   ),
                   autofocus: true,
@@ -1817,7 +1971,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
+                      borderSide: BorderSide(
+                        color: AppColors.primaryRose,
+                        width: 2,
+                      ),
                     ),
                   ),
                   maxLines: 3,
@@ -1969,8 +2126,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final bool isOverdue =
         todo.dueDate != null &&
         !todo.isCompleted &&
-        todo.dueDate!.isBefore(DateTime.now().subtract(const Duration(days: 1)));
-    
+        todo.dueDate!.isBefore(
+          DateTime.now().subtract(const Duration(days: 1)),
+        );
+
     int? daysRemaining;
     if (todo.dueDate != null && !todo.isCompleted) {
       daysRemaining = todo.dueDate!.difference(DateTime.now()).inDays;
@@ -2001,13 +2160,18 @@ class _HomeScreenState extends State<HomeScreen> {
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: AppColors.black,
-                            decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
+                            decoration: todo.isCompleted
+                                ? TextDecoration.lineThrough
+                                : null,
                           ),
                         ),
                         const SizedBox(height: 8),
                         // Badge de priorité
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: priority.color,
                             borderRadius: BorderRadius.circular(12),
@@ -2026,9 +2190,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   // Badge de statut
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: todo.isCompleted ? AppColors.success : AppColors.warning,
+                      color: todo.isCompleted
+                          ? AppColors.success
+                          : AppColors.warning,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -2042,9 +2211,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Description
               if (todo.description.isNotEmpty) ...[
                 Text(
@@ -2074,7 +2243,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 24),
               ],
-              
+
               // Informations importantes
               Container(
                 padding: const EdgeInsets.all(16),
@@ -2090,7 +2259,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     // Date de création
                     Row(
                       children: [
-                        Icon(PhosphorIconsBold.calendarPlus, color: AppColors.primaryRose, size: 20),
+                        Icon(
+                          PhosphorIconsBold.calendarPlus,
+                          color: AppColors.primaryRose,
+                          size: 20,
+                        ),
                         const SizedBox(width: 12),
                         Text(
                           'Créé le: ',
@@ -2109,7 +2282,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    
+
                     // Date d'échéance
                     if (todo.dueDate != null) ...[
                       const SizedBox(height: 12),
@@ -2117,7 +2290,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Icon(
                             PhosphorIconsBold.clock,
-                            color: isOverdue ? AppColors.error : AppColors.primaryRose,
+                            color: isOverdue
+                                ? AppColors.error
+                                : AppColors.primaryRose,
                             size: 20,
                           ),
                           const SizedBox(width: 12),
@@ -2133,8 +2308,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             _formatDate(todo.dueDate!),
                             style: TextStyle(
                               fontSize: 14,
-                              color: isOverdue ? AppColors.error : AppColors.grey800,
-                              fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
+                              color: isOverdue
+                                  ? AppColors.error
+                                  : AppColors.grey800,
+                              fontWeight: isOverdue
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                           if (daysRemaining != null && !isOverdue) ...[
@@ -2143,8 +2322,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               '(${daysRemaining > 0 ? "$daysRemaining jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''}" : "Aujourd'hui"})',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: daysRemaining <= 1 ? AppColors.warning : AppColors.grey600,
-                                fontWeight: daysRemaining <= 1 ? FontWeight.bold : FontWeight.normal,
+                                color: daysRemaining <= 1
+                                    ? AppColors.warning
+                                    : AppColors.grey600,
+                                fontWeight: daysRemaining <= 1
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
                             ),
                           ],
@@ -2154,9 +2337,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Bouton Fermer
               SizedBox(
                 width: double.infinity,
@@ -2172,10 +2355,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () => Navigator.pop(context),
                   child: const Text(
                     'Fermer',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -2198,7 +2378,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ) {
     // Capturer la valeur avant de réinitialiser
     final wasPublic = isPublic;
-    
+
     todoProvider.addTodo(
       titleController.text.trim(),
       descriptionController.text.trim(),
@@ -2206,17 +2386,21 @@ class _HomeScreenState extends State<HomeScreen> {
       selectedPriority.label.toLowerCase(),
       isPublic,
     );
-    
+
     titleController.clear();
     descriptionController.clear();
     setFormState(() {
-      // Réinitialiser à privé (la réinitialisation de selectedPriority et selectedDate 
+      // Réinitialiser à privé (la réinitialisation de selectedPriority et selectedDate
       // sera gérée dans le StatefulBuilder parent si nécessaire)
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(wasPublic ? 'Tâche publique créée avec succès !' : 'Tâche créée avec succès !'),
+        content: Text(
+          wasPublic
+              ? 'Tâche publique créée avec succès !'
+              : 'Tâche créée avec succès !',
+        ),
         backgroundColor: AppColors.success,
         duration: Duration(seconds: 2),
       ),
@@ -2231,7 +2415,11 @@ class _HomeScreenState extends State<HomeScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(PhosphorIconsBold.warningCircle, color: AppColors.accentOrange, size: 28),
+            Icon(
+              PhosphorIconsBold.warningCircle,
+              color: AppColors.accentOrange,
+              size: 28,
+            ),
             SizedBox(width: 12),
             Text(
               'Tâche publique',
@@ -2289,10 +2477,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
             Text(
               'Êtes-vous sûr de vouloir continuer ?',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.grey700,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.grey700),
             ),
           ],
         ),
@@ -2349,10 +2534,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Annuler',
-              style: TextStyle(color: AppColors.grey700),
-            ),
+            child: Text('Annuler', style: TextStyle(color: AppColors.grey700)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -2401,10 +2583,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Annuler',
-              style: TextStyle(color: AppColors.grey700),
-            ),
+            child: Text('Annuler', style: TextStyle(color: AppColors.grey700)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -2448,10 +2627,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Annuler',
-              style: TextStyle(color: AppColors.grey700),
-            ),
+            child: Text('Annuler', style: TextStyle(color: AppColors.grey700)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
