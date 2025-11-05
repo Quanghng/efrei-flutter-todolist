@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config/theme.dart';
 import 'auth/login_screen.dart';
 import 'auth/register_screen.dart';
@@ -784,35 +785,25 @@ class _LandingPageState extends State<LandingPage> {
           const SizedBox(height: 8),
           
           Text(
-            'Professeur Jérôme Commaret',
+            'Réalisé par Thibault DELATTRE, Quang HOANG, Jie FAN, Florent LELION',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Colors.white.withOpacity(0.5),
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
           
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                onPressed: () {},
-                icon: Icon(PhosphorIconsBold.githubLogo),
-                color: Colors.white.withOpacity(0.7),
-                iconSize: 28,
-              ),
-              IconButton(
-                onPressed: () {},
-                icon: Icon(PhosphorIconsBold.linkedinLogo),
-                color: Colors.white.withOpacity(0.7),
-                iconSize: 28,
-              ),
-              IconButton(
-                onPressed: () {},
-                icon: Icon(PhosphorIconsBold.twitterLogo),
-                color: Colors.white.withOpacity(0.7),
-                iconSize: 28,
-              ),
-            ],
+          IconButton(
+            onPressed: () async {
+              final url = Uri.parse('https://github.com/Quanghng/efrei-flutter-todolist');
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              }
+            },
+            icon: Icon(PhosphorIconsBold.githubLogo),
+            color: Colors.white.withOpacity(0.7),
+            iconSize: 32,
+            tooltip: 'Voir le code sur GitHub',
           ),
           const SizedBox(height: 16),
           
