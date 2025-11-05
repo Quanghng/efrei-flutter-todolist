@@ -8,6 +8,7 @@ class Todo {
   final String userId;
   final String priority;
   final DateTime? dueDate;
+  final bool isPublic; // Nouveau champ
 
   Todo({
     required this.id,
@@ -19,6 +20,7 @@ class Todo {
     required this.userId,
     required this.priority,
     this.dueDate,
+    this.isPublic = false, // Privé par défaut
   });
 
   // Convertir en Map pour Firestore
@@ -33,6 +35,7 @@ class Todo {
       'userId': userId,
       'priority': priority,
       'dueDate': dueDate?.millisecondsSinceEpoch,
+      'isPublic': isPublic, // Ajouté
     };
   }
 
@@ -52,6 +55,7 @@ class Todo {
       dueDate: map['dueDate'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['dueDate'])
           : null,
+      isPublic: map['isPublic'] ?? false, // Ajouté
     );
   }
 
@@ -66,6 +70,7 @@ class Todo {
     String? userId,
     String? priority,
     DateTime? dueDate,
+    bool? isPublic, // Ajouté
   }) {
     return Todo(
       id: id ?? this.id,
@@ -77,6 +82,7 @@ class Todo {
       userId: userId ?? this.userId,
       priority: priority ?? this.priority,
       dueDate: dueDate ?? this.dueDate,
+      isPublic: isPublic ?? this.isPublic, // Ajouté
     );
   }
 

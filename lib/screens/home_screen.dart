@@ -90,6 +90,10 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'pending':
         filteredTodos = todoProvider.pendingTodos;
         break;
+      case 'community':
+        // Afficher uniquement les tâches publiques de tous les utilisateurs
+        filteredTodos = todoProvider.publicTodos;
+        break;
       default:
         filteredTodos = todoProvider.todos;
     }
@@ -352,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.all(20),
             child: Text(
-              'Recherche & Filtres',
+              _selectedIndex == 3 ? 'Communauté' : 'Recherche & Filtres',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -504,6 +508,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final descriptionController = TextEditingController();
     Priority selectedPriority = Priority.moyen;
     DateTime? selectedDate;
+    bool isPublic = false; // Private par défaut
 
     return StatefulBuilder(
       builder: (context, setFormState) {
@@ -569,7 +574,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: descriptionController,
-              maxLines: 4,
+              maxLines: 3,
               decoration: InputDecoration(
                 hintText: 'Détails de la tâche...',
                 hintStyle: TextStyle(color: AppColors.grey500, fontSize: 14),
@@ -723,6 +728,104 @@ class _HomeScreenState extends State<HomeScreen> {
             
             const SizedBox(height: 24),
             
+            // Accessibilité
+            Text(
+              'Accessibilité',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.grey800,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                // Bouton Private
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setFormState(() {
+                        isPublic = false;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: !isPublic ? AppColors.primaryRose : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: !isPublic ? AppColors.primaryRose : AppColors.grey300,
+                          width: 2,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            PhosphorIconsBold.lock,
+                            color: !isPublic ? Colors.white : AppColors.grey600,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Privé',
+                            style: TextStyle(
+                              color: !isPublic ? Colors.white : AppColors.grey700,
+                              fontWeight: !isPublic ? FontWeight.bold : FontWeight.w500,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Bouton Public
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setFormState(() {
+                        isPublic = true;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isPublic ? AppColors.primaryRose : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isPublic ? AppColors.primaryRose : AppColors.grey300,
+                          width: 2,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            PhosphorIconsBold.globe,
+                            color: isPublic ? Colors.white : AppColors.grey600,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Public',
+                            style: TextStyle(
+                              color: isPublic ? Colors.white : AppColors.grey700,
+                              fontWeight: isPublic ? FontWeight.bold : FontWeight.w500,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 24),
+            
             // Bouton Créer
             SizedBox(
               width: double.infinity,
@@ -743,16 +846,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       descriptionController.text.trim(),
                       selectedDate,
                       selectedPriority.label.toLowerCase(),
+                      isPublic, // Paramètre activé
                     );
+                    
+                    // Capturer la valeur avant de réinitialiser
+                    final wasPublic = isPublic;
+                    
                     titleController.clear();
                     descriptionController.clear();
                     setFormState(() {
                       selectedPriority = Priority.moyen;
                       selectedDate = null;
+                      isPublic = false; // Réinitialiser à privé
                     });
+                    
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Tâche créée avec succès !'),
+                        content: Text(wasPublic ? 'Tâche publique créée avec succès !' : 'Tâche créée avec succès !'),
                         backgroundColor: AppColors.success,
                         duration: Duration(seconds: 2),
                       ),
@@ -911,6 +1021,9 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: _buildNavButton('Terminées', 'completed', PhosphorIconsBold.checkCircle),
             ),
+            Expanded(
+              child: _buildNavButton('Communauté', 'community', PhosphorIconsBold.users),
+            ),
           ],
         ),
       ),
@@ -930,6 +1043,8 @@ class _HomeScreenState extends State<HomeScreen> {
             _selectedIndex = 1;
           } else if (value == 'completed') {
             _selectedIndex = 2;
+          } else if (value == 'community') {
+            _selectedIndex = 3;
           }
         });
       },
@@ -1000,24 +1115,60 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Stack(
           children: [
-            // Badge de priorité en haut à droite
+            // Badges en haut à droite (Public + Priorité)
             Positioned(
               top: 8,
               right: 8,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: priority.color,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  priority.label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Badge "Public" si la tâche est publique
+                  if (todo.isPublic) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentOrange,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            PhosphorIconsBold.globe,
+                            color: Colors.white,
+                            size: 10,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Public',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                  // Badge de priorité
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: priority.color,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      priority.label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
             

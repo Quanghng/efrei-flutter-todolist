@@ -14,6 +14,7 @@ class TodoProvider with ChangeNotifier {
         _auth = auth ?? FirebaseAuth.instance;
 
   List<Todo> _todos = [];
+  List<Todo> _publicTodos = []; // Nouvelle liste pour les todos publics
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -23,6 +24,7 @@ class TodoProvider with ChangeNotifier {
       _todos.where((todo) => todo.isCompleted).toList();
   List<Todo> get pendingTodos =>
       _todos.where((todo) => !todo.isCompleted).toList();
+  List<Todo> get publicTodos => _publicTodos; // Nouveau getter
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   int get totalTodos => _todos.length;
@@ -39,6 +41,7 @@ class TodoProvider with ChangeNotifier {
 
     print('TodoProvider: Début de l\'écoute pour l\'utilisateur ${user.uid}');
 
+    // Écouter les todos de l'utilisateur
     _firestore
         .collection('todos')
         .where('userId', isEqualTo: user.uid)
@@ -63,11 +66,34 @@ class TodoProvider with ChangeNotifier {
             _setError('Erreur lors du chargement des todos: $error');
           },
         );
+    
+    // Écouter les todos publics de tous les utilisateurs
+    _firestore
+        .collection('todos')
+        .where('isPublic', isEqualTo: true)
+        .snapshots()
+        .listen(
+          (snapshot) {
+            print('TodoProvider: Reçu ${snapshot.docs.length} todos publics');
+            var publicTodosList = snapshot.docs.map((doc) {
+              return Todo.fromMap(doc.data());
+            }).toList();
+
+            // Tri par date de création
+            publicTodosList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            _publicTodos = publicTodosList;
+            notifyListeners();
+          },
+          onError: (error) {
+            print('TodoProvider: Erreur lors de l\'écoute des todos publics - $error');
+          },
+        );
   }
 
   // Arrêter l'écoute
   void stopListening() {
     _todos = [];
+    _publicTodos = [];
     notifyListeners();
   }
 
@@ -77,6 +103,7 @@ class TodoProvider with ChangeNotifier {
     String description,
     DateTime? dueDate, [
     String priority = 'moyen',
+    bool isPublic = false, // Nouveau paramètre
   ]) async {
     final user = _auth.currentUser;
     if (user == null) {
@@ -98,6 +125,7 @@ class TodoProvider with ChangeNotifier {
         userId: user.uid,
         priority: priority,
         dueDate: dueDate,
+        isPublic: isPublic, // Ajouté
       );
 
       print(
