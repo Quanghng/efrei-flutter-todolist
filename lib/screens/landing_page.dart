@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../config/theme.dart';
 import 'auth/login_screen.dart';
 import 'auth/register_screen.dart';
@@ -22,6 +23,44 @@ class _LandingPageState extends State<LandingPage> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // Récupérer le nombre total de tâches dans Firestore
+  // Compte seulement les tâches publiques (accessibles sans auth)
+  Future<int> _getTotalTasksCount() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('todos')
+          .where('isPublic', isEqualTo: true)
+          .get();
+      return snapshot.docs.length;
+    } catch (e) {
+      print('LandingPage: Erreur lors du comptage des tâches - $e');
+      return 0;
+    }
+  }
+
+  // Récupérer le nombre d'utilisateurs inscrits (via leurs tâches)
+  Future<int> _getActiveUsersCount() async {
+    try {
+      // Compter les userId uniques dans toutes les tâches
+      final snapshot = await FirebaseFirestore.instance
+          .collection('todos')
+          .get();
+      
+      final uniqueUsers = <String>{};
+      for (var doc in snapshot.docs) {
+        final userId = doc.data()['userId'] as String?;
+        if (userId != null) {
+          uniqueUsers.add(userId);
+        }
+      }
+      
+      return uniqueUsers.length;
+    } catch (e) {
+      print('LandingPage: Erreur lors du comptage des utilisateurs - $e');
+      return 0;
+    }
   }
 
   void _scrollToSection(GlobalKey key) {
@@ -297,15 +336,37 @@ class _LandingPageState extends State<LandingPage> {
                     ),
                     const SizedBox(height: 32),
                     
-                    // Stats
-                    Row(
-                      children: [
-                        _buildStatItem(context, '10K+', 'Utilisateurs actifs'),
-                        const SizedBox(width: 48),
-                        _buildStatItem(context, '50K+', 'Tâches complétées'),
-                        const SizedBox(width: 48),
-                        _buildStatItem(context, '4.9★', 'Note moyenne'),
-                      ],
+                    // Stats avec compteurs chargés au refresh
+                    FutureBuilder<List<int>>(
+                      future: Future.wait([
+                        _getActiveUsersCount(),
+                        _getTotalTasksCount(),
+                      ]),
+                      builder: (context, snapshot) {
+                        String usersCount = '...';
+                        String tasksCount = '...';
+                        
+                        if (snapshot.connectionState == ConnectionState.done) {
+                          if (snapshot.hasError) {
+                            print('LandingPage: Erreur chargement stats - ${snapshot.error}');
+                            usersCount = '0';
+                            tasksCount = '0';
+                          } else if (snapshot.hasData) {
+                            usersCount = '${snapshot.data![0]}';
+                            tasksCount = '${snapshot.data![1]}';
+                          }
+                        }
+                        
+                        return Row(
+                          children: [
+                            _buildStatItem(context, usersCount, 'Utilisateurs inscrits'),
+                            const SizedBox(width: 48),
+                            _buildStatItem(context, tasksCount, 'Tâches créées'),
+                            const SizedBox(width: 48),
+                            _buildStatItem(context, '4.9★', 'Note moyenne'),
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),
