@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/auth_provider.dart';
 import '../providers/todo_provider.dart';
-import '../providers/theme_provider.dart';
+import '../config/theme.dart';
 
 enum Priority {
-  faible(1, 'Faible', Colors.green),
-  moyen(2, 'Moyen', Colors.orange),
-  fort(3, 'Fort', Colors.red);
+  faible(1, 'Faible', Color(0xFF4CAF50)),
+  moyen(2, 'Moyen', Color(0xFFFF9800)),
+  fort(3, 'Fort', Color(0xFFE57373));
 
   const Priority(this.value, this.label, this.color);
   final int value;
@@ -29,26 +30,11 @@ enum Priority {
 }
 
 enum SortOption {
-  dateDesc('Date (récent → ancien)', 'date', true, Icons.schedule),
-  dateAsc('Date (ancien → récent)', 'date', false, Icons.schedule_outlined),
-  priorityDesc(
-    'Priorité (fort → faible)',
-    'priority',
-    true,
-    Icons.priority_high,
-  ),
-  priorityAsc(
-    'Priorité (faible → fort)',
-    'priority',
-    false,
-    Icons.low_priority,
-  ),
-  statusPendingFirst(
-    'Statut (en attente → terminé)',
-    'status',
-    false,
-    Icons.check_circle_outline,
-  );
+  dateDesc('Date (récent → ancien)', 'date', true, PhosphorIconsBold.calendarBlank),
+  dateAsc('Date (ancien → récent)', 'date', false, PhosphorIconsBold.calendar),
+  priorityDesc('Priorité (fort → faible)', 'priority', true, PhosphorIconsBold.arrowUp),
+  priorityAsc('Priorité (faible → fort)', 'priority', false, PhosphorIconsBold.arrowDown),
+  statusPendingFirst('Statut (en attente → terminé)', 'status', false, PhosphorIconsBold.checkCircle);
 
   const SortOption(this.label, this.type, this.descending, this.icon);
   final String label;
@@ -174,54 +160,88 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         return Scaffold(
+          backgroundColor: AppColors.background,
           appBar: AppBar(
-            title: const Text(
-              'EFREI Taskip',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            title: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.all(6),
+                  child: Image.asset(
+                    'assets/images/Taskip_logo.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Taskip',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
-            backgroundColor: Colors.blue.shade600,
+            backgroundColor: AppColors.primaryRose,
             foregroundColor: Colors.white,
             elevation: 0,
             actions: [
+              // Statistiques
+              Consumer<TodoProvider>(
+                builder: (context, todoProvider, _) {
+                  final stats = todoProvider.getStatistics();
+                  return Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(PhosphorIconsBold.checkCircle, size: 18),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${stats['completed']}/${stats['total']}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
               // Bouton pour supprimer les tâches terminées
               Consumer<TodoProvider>(
                 builder: (context, todoProvider, _) {
                   return todoProvider.completedTodos.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear_all),
+                          icon: Icon(PhosphorIconsBold.trash),
                           tooltip: 'Supprimer les tâches terminées',
                           onPressed: () => _showDeleteAllCompletedDialog(todoProvider),
                         )
                       : const SizedBox.shrink();
                 },
               ),
-          // Statistiques
-          Consumer<TodoProvider>(
-            builder: (context, todoProvider, _) {
-              final stats = todoProvider.getStatistics();
-              return Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: Center(
-                  child: Text(
-                    '${stats['completed']}/${stats['total']}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              );
-            },
+              // Bouton de déconnexion
+              IconButton(
+                icon: Icon(PhosphorIconsBold.signOut),
+                tooltip: 'Se déconnecter',
+                onPressed: () {
+                  _showLogoutDialog();
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
           ),
-          // Bouton de déconnexion
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              _showLogoutDialog();
-            },
-          ),
-        ],
-      ),
       body: Builder(
         builder: (context) {
           final filteredTodos = _getFilteredTodos(todoProvider);
@@ -232,33 +252,119 @@ class _HomeScreenState extends State<HomeScreen> {
 
               return Column(
                 children: [
-                  // Barre de statistiques
-                  _buildStatsBar(todoProvider),
+                  // Header avec bouton + et barre de recherche
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                    child: Column(
+                      children: [
+                        // Bouton + en haut centré
+                        GestureDetector(
+                          onTap: _showAddTodoDialog,
+                          child: Container( 
+                            width: 70,
+                            height: 70,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [AppColors.primaryRose, AppColors.accentOrange],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(35),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primaryRose.withOpacity(0.4),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              PhosphorIconsBold.plus,
+                              color: Colors.white,
+                              size: 36,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Barre de recherche
+                        TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Rechercher une tâche...',
+                            hintStyle: TextStyle(color: AppColors.grey500),
+                            prefixIcon: Icon(PhosphorIconsBold.magnifyingGlass, color: AppColors.primaryRose),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: Icon(PhosphorIconsBold.x, color: AppColors.grey600),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                    },
+                                  )
+                                : null,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppColors.grey300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppColors.grey300),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
+                            ),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 12),
+                        
+                        // Barre de statistiques compacte
+                        _buildStatsBar(todoProvider),
+                      ],
+                    ),
+                  ),
 
-                  // Barre de recherche et filtres
-                  _buildSearchAndFilters(),
-
-                  // Liste des todos ou état vide
+                  // Grille de tâches ou état vide
                   Expanded(
                     child: filteredTodos.isEmpty
                         ? _buildEmptyState()
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: filteredTodos.length,
-                            itemBuilder: (context, index) {
-                              final todo = filteredTodos[index];
-                              return _buildTodoItem(todo, todoProvider);
+                        : LayoutBuilder(
+                            builder: (context, constraints) {
+                              // Responsive: ajuster le nombre de colonnes selon la largeur
+                              int crossAxisCount = 2;
+                              if (constraints.maxWidth > 1200) {
+                                crossAxisCount = 4;
+                              } else if (constraints.maxWidth > 800) {
+                                crossAxisCount = 3;
+                              }
+                              
+                              return GridView.builder(
+                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: crossAxisCount,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 0.85,
+                                ),
+                                itemCount: filteredTodos.length,
+                                itemBuilder: (context, index) {
+                                  final todo = filteredTodos[index];
+                                  return _buildTodoCard(todo, todoProvider);
+                                },
+                              );
                             },
                           ),
                   ),
+                  
+                  // Footer de navigation
+                  _buildBottomNavigationBar(),
                 ],
               );
             },
-          ),
-          floatingActionButton: FloatingActionButton(
-            backgroundColor: Colors.blue.shade600,
-            onPressed: _showAddTodoDialog,
-            child: const Icon(Icons.add, color: Colors.white),
           ),
         );
       },
@@ -289,10 +395,10 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Icon(
             _searchQuery.isNotEmpty
-                ? Icons.search_off
-                : Icons.checklist_rounded,
+                ? PhosphorIconsBold.magnifyingGlass
+                : PhosphorIconsBold.listChecks,
             size: 100,
-            color: Colors.grey.shade400,
+            color: AppColors.grey400,
           ),
           const SizedBox(height: 24),
           Text(
@@ -300,13 +406,13 @@ class _HomeScreenState extends State<HomeScreen> {
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
+              color: AppColors.grey700,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
+            style: TextStyle(fontSize: 16, color: AppColors.grey500),
             textAlign: TextAlign.center,
           ),
         ],
@@ -316,193 +422,292 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildStatsBar(TodoProvider todoProvider) {
     final stats = todoProvider.getStatistics();
-    final cs = Theme.of(context).colorScheme;
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.outlineVariant),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _buildStatItem('Total', stats['total'].toString(), Colors.blue),
-              const SizedBox(width: 24),
-              _buildStatItem('Terminées', stats['completed'].toString(), Colors.green),
-              const SizedBox(width: 24),
-              _buildStatItem('En cours', stats['pending'].toString(), Colors.orange),
-              const Spacer(),
-              Text(
-                '${stats['completionRate']}% terminé',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: cs.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: (stats['completionRate'] ?? 0) / 100.0,
-              minHeight: 8,
-              backgroundColor: cs.surfaceVariant.withOpacity(0.5),
-              valueColor: AlwaysStoppedAnimation<Color>(cs.primary),
+    return Center(
+      child: Container(
+        constraints: BoxConstraints(maxWidth: 500),
+        margin: const EdgeInsets.symmetric(horizontal: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.grey400.withOpacity(0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildStatItemCompact('Total', stats['total'].toString(), AppColors.primaryRose),
+            Container(width: 1, height: 30, color: AppColors.grey300),
+            _buildStatItemCompact('Terminées', stats['completed'].toString(), AppColors.success),
+            Container(width: 1, height: 30, color: AppColors.grey300),
+            _buildStatItemCompact('En cours', stats['pending'].toString(), AppColors.warning),
+          ],
+        ),
       ),
     );
   }
 
-Widget _buildSearchAndFilters() {
-  return Container(
-    margin: const EdgeInsets.symmetric(horizontal: 16),
-    child: Column(
-      children: [
-        // Barre de recherche
-        TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: 'Rechercher une tâche...',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: _searchQuery.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      _searchController.clear();
-                    },
-                  )
-                : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            filled: true,
-            fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
-          ),
-        ),
-        const SizedBox(height: 12),
-        // Filtres - Boutons à gauche et tri à droite
-        Row(
-          children: [
-            // Boutons de filtres à gauche
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    _buildFilterChip('Toutes', 'all'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('En cours', 'pending'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Terminées', 'completed'),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            // Menu de tri à droite
-            PopupMenuButton<SortOption>(
-  onSelected: (SortOption option) {
-    setState(() {
-      _currentSort = option;
-    });
-  },
-  tooltip: 'Options de tri',
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(12),
-  ),
-  child: Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.primaryContainer,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.4)),
-    ),
-    child: Row(
+  Widget _buildStatItemCompact(String label, String value, Color color) {
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          _currentSort.label,
+          value,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onPrimaryContainer,
-            fontWeight: FontWeight.w500,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
           ),
         ),
-        const SizedBox(width: 4),
-        Icon(
-          Icons.arrow_drop_down,
-          color: Theme.of(context).colorScheme.onPrimaryContainer,
-          size: 20,
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: AppColors.grey600,
+          ),
         ),
       ],
-    ),
-  ),
-  itemBuilder: (BuildContext context) => SortOption.values.map((SortOption option) {
-    return PopupMenuItem<SortOption>(
-      value: option,
-      child: Row(
-        children: [
-          Icon(
-            option.icon,
-            size: 20,
-            color: _currentSort == option ? Colors.blue : Colors.grey.shade600,
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.grey400.withOpacity(0.2),
+            blurRadius: 12,
+            offset: const Offset(0, -4),
           ),
-          const SizedBox(width: 12),
-          Text(
-            option.label,
-            style: TextStyle(
-              color: _currentSort == option ? Colors.blue : Colors.black,
-              fontWeight: _currentSort == option ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-          if (_currentSort == option) ...[
-            const Spacer(),
-            Icon(
-              Icons.check,
-              size: 20,
-              color: Colors.blue,
-            ),
-          ],
         ],
       ),
-    );
-  }).toList(),
-),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildNavButton('Toutes', 'all', PhosphorIconsBold.listChecks),
+            ),
+            Expanded(
+              child: _buildNavButton('En cours', 'pending', PhosphorIconsBold.clockCountdown),
+            ),
+            Expanded(
+              child: _buildNavButton('Terminées', 'completed', PhosphorIconsBold.checkCircle),
+            ),
           ],
         ),
-        const SizedBox(height: 8),
-      ],
-    ),
-  );
-}
+      ),
+    );
+  }
 
-  Widget _buildFilterChip(String label, String value) {
+  Widget _buildNavButton(String label, String value, IconData icon) {
     final isSelected = _filterStatus == value;
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
+    return InkWell(
+      onTap: () {
         setState(() {
           _filterStatus = value;
         });
       },
-      selectedColor: Theme.of(context).colorScheme.primaryContainer,
-      checkmarkColor: Theme.of(context).colorScheme.onPrimaryContainer,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryRose : Colors.transparent,
+          border: Border(
+            top: BorderSide(
+              color: isSelected ? AppColors.primaryRose : Colors.transparent,
+              width: 3,
+            ),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : AppColors.grey600,
+              size: 26,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : AppColors.grey700,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTodoCard(todo, TodoProvider todoProvider) {
+    final priority = Priority.fromString(todo.priority ?? 'moyen');
+    final bool isOverdue =
+        todo.dueDate != null &&
+        !todo.isCompleted &&
+        todo.dueDate!.isBefore(DateTime.now().subtract(const Duration(days: 1)));
+
+    return GestureDetector(
+      onTap: () => _showEditTodoDialog(todo, todoProvider),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: priority.color.withOpacity(0.3),
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: priority.color.withOpacity(0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Badge de priorité en haut à droite
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: priority.color,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  priority.label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            
+            // Bouton de suppression en haut à gauche
+            Positioned(
+              top: 8,
+              left: 8,
+              child: GestureDetector(
+                onTap: () => _showDeleteDialog(todo.id, todoProvider),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    PhosphorIconsBold.trash,
+                    color: AppColors.error,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ),
+            
+            // Contenu de la carte
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 30), // Espace pour les badges
+                  
+                  // Checkbox
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: todo.isCompleted,
+                        onChanged: (value) {
+                          todoProvider.toggleTodoStatus(todo.id);
+                        },
+                        activeColor: AppColors.success,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          todo.title,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
+                            color: todo.isCompleted ? AppColors.grey500 : AppColors.black,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 8),
+                  
+                  // Description
+                  if (todo.description.isNotEmpty)
+                    Expanded(
+                      child: Text(
+                        todo.description,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: todo.isCompleted ? AppColors.grey500 : AppColors.grey700,
+                          decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  
+                  const Spacer(),
+                  
+                  // Date d'échéance
+                  if (todo.dueDate != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isOverdue ? AppColors.error.withOpacity(0.1) : AppColors.grey100,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            PhosphorIconsBold.clock,
+                            color: isOverdue ? AppColors.error : AppColors.grey600,
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _formatDate(todo.dueDate!),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isOverdue ? AppColors.error : AppColors.grey700,
+                              fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -522,7 +727,7 @@ Widget _buildSearchAndFilters() {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            color: AppColors.grey600,
           ),
         ),
       ],
@@ -541,96 +746,114 @@ Widget _buildSearchAndFilters() {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Indicateur de priorité
-            Container(
-              width: 4,
-              height: 40,
-              decoration: BoxDecoration(
-                color: priority.color,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Checkbox(
-              value: todo.isCompleted,
-              onChanged: (value) {
-                todoProvider.toggleTodoStatus(todo.id);
-              },
-              activeColor: Colors.green,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppColors.grey200, width: 1),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryRose.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        title: Text(
-          todo.title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
-            color: todo.isCompleted ? Colors.grey : null,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (todo.description.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                todo.description,
-                style: TextStyle(
-                  decoration: todo.isCompleted
-                      ? TextDecoration.lineThrough
-                      : null,
-                  color: todo.isCompleted ? Colors.grey : Colors.grey.shade700,
+        child: ListTile(
+          contentPadding: const EdgeInsets.all(16),
+          leading: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Indicateur de priorité
+              Container(
+                width: 4,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: priority.color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Checkbox(
+                value: todo.isCompleted,
+                onChanged: (value) {
+                  todoProvider.toggleTodoStatus(todo.id);
+                },
+                activeColor: AppColors.success,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
                 ),
               ),
             ],
-            const SizedBox(height: 8),
-            // Due date
-            if (todo.dueDate != null) ...[
+          ),
+          title: Text(
+            todo.title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
+              color: todo.isCompleted ? AppColors.grey500 : AppColors.black,
+            ),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (todo.description.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  todo.description,
+                  style: TextStyle(
+                    decoration: todo.isCompleted
+                        ? TextDecoration.lineThrough
+                        : null,
+                    color: todo.isCompleted ? AppColors.grey500 : AppColors.grey700,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              // Due date
+              if (todo.dueDate != null) ...[
+                Row(
+                  children: [
+                    Icon(
+                      PhosphorIconsBold.clock,
+                      color: isOverdue ? AppColors.error : AppColors.grey600,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Échéance: ${_formatDate(todo.dueDate!)}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isOverdue ? AppColors.error : AppColors.grey600,
+                        fontWeight: isOverdue
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+              ],
               Row(
                 children: [
                   Icon(
-                    Icons.alarm,
-                    color: isOverdue ? Colors.red : Colors.grey.shade600,
-                    size: 18,
+                    PhosphorIconsBold.calendar,
+                    color: AppColors.grey600,
+                    size: 16,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Échéance: ${_formatDate(todo.dueDate!)}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isOverdue ? Colors.red : Colors.grey.shade600,
-                      fontWeight: isOverdue
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
+                    'Crée: ${_formatDate(todo.createdAt)}',
+                    style: TextStyle(fontSize: 12, color: AppColors.grey500),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
             ],
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_today,
-                  color: Colors.grey.shade600,
-                  size: 16,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Crée: ${_formatDate(todo.createdAt)}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                ),
-              ],
-            ),
-          ],
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -664,21 +887,21 @@ Widget _buildSearchAndFilters() {
                 }
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'edit',
                   child: Row(
                     children: [
-                      Icon(Icons.edit, color: Colors.blue),
+                      Icon(PhosphorIconsBold.pencil, color: AppColors.primaryRose),
                       SizedBox(width: 8),
                       Text('Modifier'),
                     ],
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(Icons.delete, color: Colors.red),
+                      Icon(PhosphorIconsBold.trash, color: AppColors.error),
                       SizedBox(width: 8),
                       Text('Supprimer'),
                     ],
@@ -689,6 +912,7 @@ Widget _buildSearchAndFilters() {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -706,24 +930,61 @@ Widget _buildSearchAndFilters() {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Nouvelle tâche'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(PhosphorIconsBold.plus, color: AppColors.primaryRose),
+              SizedBox(width: 12),
+              Text(
+                'Nouvelle tâche',
+                style: TextStyle(
+                  color: AppColors.primaryRose,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: titleController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Titre *',
-                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: AppColors.grey700),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.grey300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.grey300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
+                  ),
                 ),
                 autofocus: true,
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: descriptionController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Description (optionnel)',
-                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: AppColors.grey700),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.grey300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.grey300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
+                  ),
                 ),
                 maxLines: 3,
               ),
@@ -732,9 +993,13 @@ Widget _buildSearchAndFilters() {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Priorité *',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.grey800,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -774,21 +1039,47 @@ Widget _buildSearchAndFilters() {
               //Sélecteur de date d'échéance
               Row(
                 children: [
+                  Icon(PhosphorIconsBold.calendar, color: AppColors.grey700),
+                  SizedBox(width: 8),
                   Text(
                     selectedDate == null
                         ? 'Date d\'échéance'
                         : 'Échéance: ${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.grey800,
+                    ),
                   ),
-                  const SizedBox(width: 50),
-                  const Icon(Icons.calendar_today),
-                  TextButton(
+                  const Spacer(),
+                  ElevatedButton.icon(
+                    icon: Icon(PhosphorIconsBold.calendarPlus, size: 18),
+                    label: Text('Choisir'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryRose,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                     onPressed: () async {
                       final DateTime? picked = await showDatePicker(
                         context: context,
                         initialDate: selectedDate ?? DateTime.now(),
                         firstDate: DateTime.now(),
                         lastDate: DateTime(2101),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: ColorScheme.light(
+                                primary: AppColors.primaryRose,
+                                onPrimary: Colors.white,
+                                onSurface: AppColors.black,
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
                       );
                       if (picked != null && picked != selectedDate) {
                         setDialogState(() {
@@ -796,7 +1087,6 @@ Widget _buildSearchAndFilters() {
                         });
                       }
                     },
-                    child: const Text('Choisir'),
                   ),
                 ],
               ),
@@ -805,9 +1095,20 @@ Widget _buildSearchAndFilters() {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Annuler'),
+              child: Text(
+                'Annuler',
+                style: TextStyle(color: AppColors.grey700),
+              ),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryRose,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
               onPressed: () {
                 if (titleController.text.trim().isNotEmpty) {
                   // Vous devez modifier votre méthode addTodo pour accepter la priorité
@@ -839,24 +1140,61 @@ Widget _buildSearchAndFilters() {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            title: const Text('Modifier la tâche'),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                Icon(PhosphorIconsBold.pencil, color: AppColors.primaryRose),
+                SizedBox(width: 12),
+                Text(
+                  'Modifier la tâche',
+                  style: TextStyle(
+                    color: AppColors.primaryRose,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: titleController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Titre *',
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: AppColors.grey700),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.grey300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.grey300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
+                    ),
                   ),
                   autofocus: true,
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: descriptionController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Description (optionnel)',
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: AppColors.grey700),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.grey300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.grey300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
+                    ),
                   ),
                   maxLines: 3,
                 ),
@@ -864,11 +1202,12 @@ Widget _buildSearchAndFilters() {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Priorité *',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
+                        color: AppColors.grey800,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -909,22 +1248,48 @@ Widget _buildSearchAndFilters() {
                 // Sélecteur de date d'échéance
                 Row(
                   children: [
-                    const Icon(Icons.calendar_today),
+                    Icon(PhosphorIconsBold.calendar, color: AppColors.grey700),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         selectedDate == null
                             ? 'Date d\'échéance'
                             : 'Échéance: ${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.grey800,
+                        ),
                       ),
                     ),
-                    TextButton(
+                    ElevatedButton.icon(
+                      icon: Icon(PhosphorIconsBold.calendarPlus, size: 18),
+                      label: Text('Modifier'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryRose,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
                       onPressed: () async {
                         final DateTime? picked = await showDatePicker(
                           context: context,
                           initialDate: selectedDate ?? DateTime.now(),
                           firstDate: DateTime.now(),
                           lastDate: DateTime(2101),
+                          builder: (context, child) {
+                            return Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: ColorScheme.light(
+                                  primary: AppColors.primaryRose,
+                                  onPrimary: Colors.white,
+                                  onSurface: AppColors.black,
+                                ),
+                              ),
+                              child: child!,
+                            );
+                          },
                         );
                         if (picked != null && picked != selectedDate) {
                           setDialogState(() {
@@ -932,7 +1297,6 @@ Widget _buildSearchAndFilters() {
                           });
                         }
                       },
-                      child: const Text('Modifier'),
                     ),
                   ],
                 ),
@@ -941,9 +1305,20 @@ Widget _buildSearchAndFilters() {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Annuler'),
+                child: Text(
+                  'Annuler',
+                  style: TextStyle(color: AppColors.grey700),
+                ),
               ),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryRose,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
                 onPressed: () {
                   if (titleController.text.trim().isNotEmpty) {
                     final updatedTodo = todo.copyWith(
@@ -969,17 +1344,37 @@ Widget _buildSearchAndFilters() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Supprimer la tâche'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(PhosphorIconsBold.trash, color: AppColors.error),
+            SizedBox(width: 12),
+            Text(
+              'Supprimer la tâche',
+              style: TextStyle(
+                color: AppColors.error,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
         content: const Text('Êtes-vous sûr de vouloir supprimer cette tâche ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: Text(
+              'Annuler',
+              style: TextStyle(color: AppColors.grey700),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () {
               todoProvider.deleteTodo(todoId);
@@ -996,19 +1391,42 @@ Widget _buildSearchAndFilters() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Supprimer les tâches terminées'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(PhosphorIconsBold.trash, color: AppColors.error),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Supprimer les tâches terminées',
+                style: TextStyle(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
         content: Text(
           'Êtes-vous sûr de vouloir supprimer les ${todoProvider.completedTodos.length} tâche(s) terminée(s) ?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: Text(
+              'Annuler',
+              style: TextStyle(color: AppColors.grey700),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () {
               todoProvider.deleteCompletedTodos();
@@ -1025,14 +1443,38 @@ Widget _buildSearchAndFilters() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Déconnexion'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(PhosphorIconsBold.signOut, color: AppColors.primaryRose),
+            SizedBox(width: 12),
+            Text(
+              'Déconnexion',
+              style: TextStyle(
+                color: AppColors.primaryRose,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
         content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: Text(
+              'Annuler',
+              style: TextStyle(color: AppColors.grey700),
+            ),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryRose,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
             onPressed: () {
               context.read<TodoProvider>().stopListening();
               context.read<AuthProvider>().signOut();
