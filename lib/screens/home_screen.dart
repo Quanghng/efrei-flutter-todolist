@@ -266,28 +266,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                     builder: (context, constraints) {
                                       // Responsive: ajuster le nombre de colonnes selon la largeur
                                       int crossAxisCount = 2;
-                                      double maxCrossAxisExtent = 300;
                                       if (constraints.maxWidth > 1200) {
-                                        maxCrossAxisExtent = 280;
+                                        crossAxisCount = 3;
                                       } else if (constraints.maxWidth > 800) {
-                                        maxCrossAxisExtent = 300;
+                                        crossAxisCount = 2;
                                       } else {
-                                        maxCrossAxisExtent = 320;
+                                        crossAxisCount = 1;
                                       }
                                       
-                                      return GridView.builder(
+                                      return SingleChildScrollView(
                                         padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-                                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                                          maxCrossAxisExtent: maxCrossAxisExtent,
-                                          crossAxisSpacing: 12,
-                                          mainAxisSpacing: 12,
-                                          childAspectRatio: 1.0,
-                                        ),
-                                        itemCount: filteredTodos.length,
-                                        itemBuilder: (context, index) {
-                                          final todo = filteredTodos[index];
-                                          return _buildTodoCard(todo, todoProvider);
-                                        },
+                                        child: _buildMasonryGrid(filteredTodos, crossAxisCount, todoProvider),
                                       );
                                     },
                                   ),
@@ -310,6 +299,36 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
         );
       },
+    );
+  }
+
+  Widget _buildMasonryGrid(List todos, int columns, TodoProvider todoProvider) {
+    // Distribuer les tâches dans les colonnes
+    List<List> columnTodos = List.generate(columns, (_) => []);
+    for (int i = 0; i < todos.length; i++) {
+      columnTodos[i % columns].add(todos[i]);
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: List.generate(columns, (columnIndex) {
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: columnIndex == 0 ? 0 : 6,
+              right: columnIndex == columns - 1 ? 0 : 6,
+            ),
+            child: Column(
+              children: columnTodos[columnIndex].map((todo) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildTodoCard(todo, todoProvider),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      }),
     );
   }
 
@@ -954,9 +973,15 @@ class _HomeScreenState extends State<HomeScreen> {
         todo.dueDate != null &&
         !todo.isCompleted &&
         todo.dueDate!.isBefore(DateTime.now().subtract(const Duration(days: 1)));
+    
+    // Calculer les jours restants
+    int? daysRemaining;
+    if (todo.dueDate != null && !todo.isCompleted) {
+      daysRemaining = todo.dueDate!.difference(DateTime.now()).inDays;
+    }
 
     return GestureDetector(
-      onTap: () => _showEditTodoDialog(todo, todoProvider),
+      onTap: () => _showTodoDetailsDialog(todo),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -996,24 +1021,46 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             
-            // Bouton de suppression en haut à gauche
+            // Boutons d'action en haut à gauche
             Positioned(
               top: 8,
               left: 8,
-              child: GestureDetector(
-                onTap: () => _showDeleteDialog(todo.id, todoProvider),
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: AppColors.error.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+              child: Row(
+                children: [
+                  // Bouton de suppression
+                  GestureDetector(
+                    onTap: () => _showDeleteDialog(todo.id, todoProvider),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        PhosphorIconsBold.trash,
+                        color: AppColors.error,
+                        size: 16,
+                      ),
+                    ),
                   ),
-                  child: Icon(
-                    PhosphorIconsBold.trash,
-                    color: AppColors.error,
-                    size: 16,
+                  const SizedBox(width: 6),
+                  // Bouton d'édition
+                  GestureDetector(
+                    onTap: () => _showEditTodoDialog(todo, todoProvider),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryRose.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        PhosphorIconsBold.pencilSimple,
+                        color: AppColors.primaryRose,
+                        size: 16,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
             
@@ -1072,7 +1119,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 12),
                   ],
                   
-                  // Date d'échéance
+                  // Date d'échéance avec jours restants
                   if (todo.dueDate != null)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1097,9 +1144,32 @@ class _HomeScreenState extends State<HomeScreen> {
                               fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
                             ),
                           ),
+                          if (daysRemaining != null && !isOverdue) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              '(${daysRemaining > 0 ? "$daysRemaining jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''}" : "Aujourd'hui"})',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: daysRemaining <= 1 ? AppColors.warning : AppColors.grey600,
+                                fontWeight: daysRemaining <= 1 ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
+                  
+                  const SizedBox(height: 8),
+                  
+                  // Date de création
+                  Text(
+                    'Créé le ${_formatDate(todo.createdAt)}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: AppColors.grey500,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1734,6 +1804,228 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  void _showTodoDetailsDialog(todo) {
+    final priority = Priority.fromString(todo.priority ?? 'moyen');
+    final bool isOverdue =
+        todo.dueDate != null &&
+        !todo.isCompleted &&
+        todo.dueDate!.isBefore(DateTime.now().subtract(const Duration(days: 1)));
+    
+    int? daysRemaining;
+    if (todo.dueDate != null && !todo.isCompleted) {
+      daysRemaining = todo.dueDate!.difference(DateTime.now()).inDays;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Container(
+          constraints: BoxConstraints(maxWidth: 500),
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header avec titre et statut
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          todo.title,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.black,
+                            decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Badge de priorité
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: priority.color,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Priorité: ${priority.label}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Badge de statut
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: todo.isCompleted ? AppColors.success : AppColors.warning,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      todo.isCompleted ? 'Terminée' : 'En cours',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Description
+              if (todo.description.isNotEmpty) ...[
+                Text(
+                  'Description',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.grey700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.grey100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    todo.description,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: AppColors.grey800,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+              
+              // Informations importantes
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryRose.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primaryRose.withOpacity(0.2),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    // Date de création
+                    Row(
+                      children: [
+                        Icon(PhosphorIconsBold.calendarPlus, color: AppColors.primaryRose, size: 20),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Créé le: ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.grey700,
+                          ),
+                        ),
+                        Text(
+                          _formatDate(todo.createdAt),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.grey800,
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    // Date d'échéance
+                    if (todo.dueDate != null) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(
+                            PhosphorIconsBold.clock,
+                            color: isOverdue ? AppColors.error : AppColors.primaryRose,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Échéance: ',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.grey700,
+                            ),
+                          ),
+                          Text(
+                            _formatDate(todo.dueDate!),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isOverdue ? AppColors.error : AppColors.grey800,
+                              fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                          if (daysRemaining != null && !isOverdue) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              '(${daysRemaining > 0 ? "$daysRemaining jour${daysRemaining > 1 ? 's' : ''} restant${daysRemaining > 1 ? 's' : ''}" : "Aujourd'hui"})',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: daysRemaining <= 1 ? AppColors.warning : AppColors.grey600,
+                                fontWeight: daysRemaining <= 1 ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Bouton Fermer
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryRose,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Fermer',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
