@@ -164,14 +164,9 @@ class _HomeScreenState extends State<HomeScreen> {
           appBar: AppBar(
             title: Row(
               children: [
-                Container(
+                SizedBox(
                   width: 36,
                   height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.all(6),
                   child: Image.asset(
                     'assets/images/Taskip_logo.png',
                     fit: BoxFit.contain,
@@ -246,126 +241,516 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context) {
           final filteredTodos = _getFilteredTodos(todoProvider);
 
-              if (todoProvider.isLoading && todoProvider.todos.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
-              }
+          if (todoProvider.isLoading && todoProvider.todos.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-              return Column(
-                children: [
-                  // Header avec bouton + et barre de recherche
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-                    child: Column(
-                      children: [
-                        // Bouton + en haut centré
-                        GestureDetector(
-                          onTap: _showAddTodoDialog,
-                          child: Container( 
-                            width: 70,
-                            height: 70,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [AppColors.primaryRose, AppColors.accentOrange],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(35),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primaryRose.withOpacity(0.4),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              PhosphorIconsBold.plus,
-                              color: Colors.white,
-                              size: 36,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // Barre de recherche
-                        TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Rechercher une tâche...',
-                            hintStyle: TextStyle(color: AppColors.grey500),
-                            prefixIcon: Icon(PhosphorIconsBold.magnifyingGlass, color: AppColors.primaryRose),
-                            suffixIcon: _searchQuery.isNotEmpty
-                                ? IconButton(
-                                    icon: Icon(PhosphorIconsBold.x, color: AppColors.grey600),
-                                    onPressed: () {
-                                      _searchController.clear();
+          return Column(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    // Sidebar gauche - Recherche et filtres
+                    _buildLeftSidebar(todoProvider),
+                    
+                    // Zone centrale - Grille de tâches
+                    Expanded(
+                      child: Column(
+                        children: [
+                          // Grille de tâches ou état vide
+                          Expanded(
+                            child: filteredTodos.isEmpty
+                                ? _buildEmptyState()
+                                : LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      // Responsive: ajuster le nombre de colonnes selon la largeur
+                                      int crossAxisCount = 2;
+                                      if (constraints.maxWidth > 1200) {
+                                        crossAxisCount = 4;
+                                      } else if (constraints.maxWidth > 800) {
+                                        crossAxisCount = 3;
+                                      }
+                                      
+                                      return GridView.builder(
+                                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: crossAxisCount,
+                                          crossAxisSpacing: 12,
+                                          mainAxisSpacing: 12,
+                                          childAspectRatio: 0.85,
+                                        ),
+                                        itemCount: filteredTodos.length,
+                                        itemBuilder: (context, index) {
+                                          final todo = filteredTodos[index];
+                                          return _buildTodoCard(todo, todoProvider);
+                                        },
+                                      );
                                     },
-                                  )
-                                : null,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: AppColors.grey300),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: AppColors.grey300),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
-                            ),
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                  ),
                           ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Sidebar droite - Formulaire de création
+                    _buildRightSidebar(todoProvider),
+                  ],
+                ),
+              ),
+              
+              // Footer de navigation
+              _buildBottomNavigationBar(),
+            ],
+          );
+        },
+      ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLeftSidebar(TodoProvider todoProvider) {
+    return Container(
+      width: 280,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.grey400.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(2, 0),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Titre
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text(
+              'Recherche & Filtres',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryRose,
+              ),
+            ),
+          ),
+          
+          // Barre de recherche
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Rechercher...',
+                hintStyle: TextStyle(color: AppColors.grey500, fontSize: 14),
+                prefixIcon: Icon(PhosphorIconsBold.magnifyingGlass, color: AppColors.primaryRose, size: 20),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(PhosphorIconsBold.x, color: AppColors.grey600, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.grey300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.grey300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
+                ),
+                filled: true,
+                fillColor: AppColors.grey100,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                isDense: true,
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Section Tri
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'Options de tri',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.grey700,
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Options de tri
+          _buildSortItem(SortOption.dateDesc),
+          _buildSortItem(SortOption.dateAsc),
+          _buildSortItem(SortOption.priorityDesc),
+          _buildSortItem(SortOption.priorityAsc),
+          _buildSortItem(SortOption.statusPendingFirst),
+          
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSortItem(SortOption sortOption) {
+    final isSelected = _currentSort == sortOption;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _currentSort = sortOption;
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryRose.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryRose : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              sortOption.icon,
+              color: isSelected ? AppColors.primaryRose : AppColors.grey600,
+              size: 22,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                sortOption.label,
+                style: TextStyle(
+                  color: isSelected ? AppColors.primaryRose : AppColors.grey700,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRightSidebar(TodoProvider todoProvider) {
+    return Container(
+      width: 320,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.grey400.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(-2, 0),
+          ),
+        ],
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: _buildAddTodoForm(todoProvider),
+      ),
+    );
+  }
+
+  Widget _buildAddTodoForm(TodoProvider todoProvider) {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    Priority selectedPriority = Priority.moyen;
+    DateTime? selectedDate;
+
+    return StatefulBuilder(
+      builder: (context, setFormState) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Titre
+            Row(
+              children: [
+                Icon(PhosphorIconsBold.plus, color: AppColors.primaryRose, size: 24),
+                const SizedBox(width: 12),
+                Text(
+                  'Nouvelle tâche',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryRose,
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Champ Titre
+            Text(
+              'Titre *',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.grey800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: titleController,
+              decoration: InputDecoration(
+                hintText: 'Ex: Finir le projet...',
+                hintStyle: TextStyle(color: AppColors.grey500, fontSize: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.grey300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.grey300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
+                ),
+                filled: true,
+                fillColor: AppColors.grey100,
+                contentPadding: EdgeInsets.all(12),
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Champ Description
+            Text(
+              'Description',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.grey800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: descriptionController,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: 'Détails de la tâche...',
+                hintStyle: TextStyle(color: AppColors.grey500, fontSize: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.grey300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.grey300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.primaryRose, width: 2),
+                ),
+                filled: true,
+                fillColor: AppColors.grey100,
+                contentPadding: EdgeInsets.all(12),
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Priorité
+            Text(
+              'Priorité *',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.grey800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Column(
+              children: Priority.values.map((priority) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: InkWell(
+                    onTap: () {
+                      setFormState(() {
+                        selectedPriority = priority;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: selectedPriority == priority
+                            ? priority.color.withOpacity(0.1)
+                            : AppColors.grey100,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: selectedPriority == priority
+                              ? priority.color
+                              : AppColors.grey300,
+                          width: 2,
                         ),
-                        
-                        const SizedBox(height: 12),
-                        
-                        // Barre de statistiques compacte
-                        _buildStatsBar(todoProvider),
-                      ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: priority.color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            priority.label,
+                            style: TextStyle(
+                              color: selectedPriority == priority
+                                  ? priority.color
+                                  : AppColors.grey700,
+                              fontWeight: selectedPriority == priority
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-
-                  // Grille de tâches ou état vide
-                  Expanded(
-                    child: filteredTodos.isEmpty
-                        ? _buildEmptyState()
-                        : LayoutBuilder(
-                            builder: (context, constraints) {
-                              // Responsive: ajuster le nombre de colonnes selon la largeur
-                              int crossAxisCount = 2;
-                              if (constraints.maxWidth > 1200) {
-                                crossAxisCount = 4;
-                              } else if (constraints.maxWidth > 800) {
-                                crossAxisCount = 3;
-                              }
-                              
-                              return GridView.builder(
-                                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: crossAxisCount,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: 0.85,
-                                ),
-                                itemCount: filteredTodos.length,
-                                itemBuilder: (context, index) {
-                                  final todo = filteredTodos[index];
-                                  return _buildTodoCard(todo, todoProvider);
-                                },
-                              );
-                            },
-                          ),
+                );
+              }).toList(),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Date d'échéance
+            Text(
+              'Date d\'échéance',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.grey800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () async {
+                final DateTime? picked = await showDatePicker(
+                  context: context,
+                  initialDate: selectedDate ?? DateTime.now(),
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime(2101),
+                  builder: (context, child) {
+                    return Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: ColorScheme.light(
+                          primary: AppColors.primaryRose,
+                          onPrimary: Colors.white,
+                          onSurface: AppColors.black,
+                        ),
+                      ),
+                      child: child!,
+                    );
+                  },
+                );
+                if (picked != null) {
+                  setFormState(() {
+                    selectedDate = picked;
+                  });
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.grey100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.grey300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(PhosphorIconsBold.calendar, color: AppColors.primaryRose, size: 20),
+                    const SizedBox(width: 12),
+                    Text(
+                      selectedDate == null
+                          ? 'Choisir une date'
+                          : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
+                      style: TextStyle(
+                        color: selectedDate == null ? AppColors.grey600 : AppColors.black,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Bouton Créer
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryRose,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  
-                  // Footer de navigation
-                  _buildBottomNavigationBar(),
-                ],
-              );
-            },
-          ),
+                  elevation: 2,
+                ),
+                onPressed: () {
+                  if (titleController.text.trim().isNotEmpty) {
+                    todoProvider.addTodo(
+                      titleController.text.trim(),
+                      descriptionController.text.trim(),
+                      selectedDate,
+                      selectedPriority.label.toLowerCase(),
+                    );
+                    titleController.clear();
+                    descriptionController.clear();
+                    setFormState(() {
+                      selectedPriority = Priority.moyen;
+                      selectedDate = null;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Tâche créée avec succès !'),
+                        backgroundColor: AppColors.success,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(PhosphorIconsBold.plus, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Créer la tâche',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
