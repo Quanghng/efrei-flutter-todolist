@@ -55,6 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _searchQuery = '';
   String _filterStatus = 'all'; // 'all', 'completed', 'pending'
   SortOption _currentSort = SortOption.dateDesc;
+  int _selectedIndex = 0; // 0: Toutes, 1: En cours, 2: Terminées
 
   @override
   void initState() {
@@ -162,6 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return Scaffold(
           backgroundColor: AppColors.background,
           appBar: AppBar(
+            toolbarHeight: 64,
             title: Row(
               children: [
                 SizedBox(
@@ -265,19 +267,22 @@ class _HomeScreenState extends State<HomeScreen> {
                                     builder: (context, constraints) {
                                       // Responsive: ajuster le nombre de colonnes selon la largeur
                                       int crossAxisCount = 2;
+                                      double maxCrossAxisExtent = 300;
                                       if (constraints.maxWidth > 1200) {
-                                        crossAxisCount = 4;
+                                        maxCrossAxisExtent = 280;
                                       } else if (constraints.maxWidth > 800) {
-                                        crossAxisCount = 3;
+                                        maxCrossAxisExtent = 300;
+                                      } else {
+                                        maxCrossAxisExtent = 320;
                                       }
                                       
                                       return GridView.builder(
                                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: crossAxisCount,
+                                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                                          maxCrossAxisExtent: maxCrossAxisExtent,
                                           crossAxisSpacing: 12,
                                           mainAxisSpacing: 12,
-                                          childAspectRatio: 0.85,
+                                          childAspectRatio: 1.0,
                                         ),
                                         itemCount: filteredTodos.length,
                                         itemBuilder: (context, index) {
@@ -397,7 +402,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildSortItem(SortOption.dateAsc),
           _buildSortItem(SortOption.priorityDesc),
           _buildSortItem(SortOption.priorityAsc),
-          _buildSortItem(SortOption.statusPendingFirst),
+          // Afficher le filtre par statut seulement sur "Toutes les tâches"
+          if (_selectedIndex == 0)
+            _buildSortItem(SortOption.statusPendingFirst),
           
           const Spacer(),
         ],
@@ -461,9 +468,15 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: _buildAddTodoForm(todoProvider),
+      child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: _buildAddTodoForm(todoProvider),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -485,7 +498,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Icon(PhosphorIconsBold.plus, color: AppColors.primaryRose, size: 24),
                 const SizedBox(width: 12),
                 Text(
-                  'Nouvelle tâche',
+                  'Création de tâche',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -898,10 +911,19 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: () {
         setState(() {
           _filterStatus = value;
+          // Synchroniser _selectedIndex avec _filterStatus
+          if (value == 'all') {
+            _selectedIndex = 0;
+          } else if (value == 'pending') {
+            _selectedIndex = 1;
+          } else if (value == 'completed') {
+            _selectedIndex = 2;
+          }
         });
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        height: 64,
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primaryRose : Colors.transparent,
           border: Border(
@@ -913,11 +935,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
               color: isSelected ? Colors.white : AppColors.grey600,
-              size: 26,
+              size: 24,
             ),
             const SizedBox(height: 6),
             Text(
@@ -1008,6 +1031,7 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(height: 30), // Espace pour les badges
                   
@@ -1043,21 +1067,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 8),
                   
                   // Description
-                  if (todo.description.isNotEmpty)
-                    Expanded(
-                      child: Text(
-                        todo.description,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: todo.isCompleted ? AppColors.grey500 : AppColors.grey700,
-                          decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
+                  if (todo.description.isNotEmpty) ...[
+                    Text(
+                      todo.description,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: todo.isCompleted ? AppColors.grey500 : AppColors.grey700,
+                        decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
                       ),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  
-                  const Spacer(),
+                    const SizedBox(height: 12),
+                  ],
                   
                   // Date d'échéance
                   if (todo.dueDate != null)
@@ -1321,7 +1343,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Icon(PhosphorIconsBold.plus, color: AppColors.primaryRose),
               SizedBox(width: 12),
               Text(
-                'Nouvelle tâche',
+                'Création de tâche',
                 style: TextStyle(
                   color: AppColors.primaryRose,
                   fontWeight: FontWeight.bold,
