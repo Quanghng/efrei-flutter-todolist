@@ -182,29 +182,19 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: Colors.blue.shade600,
             foregroundColor: Colors.white,
             elevation: 0,
-        actions: [
-          // Dark mode toggle
-          Consumer<ThemeProvider>(
-            builder: (context, theme, _) {
-              return IconButton(
-                tooltip: theme.isDark ? 'Mode clair' : 'Mode sombre',
-                icon: Icon(theme.isDark ? Icons.wb_sunny : Icons.dark_mode),
-                onPressed: theme.toggle,
-              );
-            },
-          ),
-          // Bouton pour supprimer les tâches terminées
-          Consumer<TodoProvider>(
-            builder: (context, todoProvider, _) {
-              return todoProvider.completedTodos.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear_all),
-                      tooltip: 'Supprimer les tâches terminées',
-                      onPressed: () => _showDeleteAllCompletedDialog(todoProvider),
-                    )
-                  : const SizedBox.shrink();
-            },
-          ),
+            actions: [
+              // Bouton pour supprimer les tâches terminées
+              Consumer<TodoProvider>(
+                builder: (context, todoProvider, _) {
+                  return todoProvider.completedTodos.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_all),
+                          tooltip: 'Supprimer les tâches terminées',
+                          onPressed: () => _showDeleteAllCompletedDialog(todoProvider),
+                        )
+                      : const SizedBox.shrink();
+                },
+              ),
           // Statistiques
           Consumer<TodoProvider>(
             builder: (context, todoProvider, _) {
