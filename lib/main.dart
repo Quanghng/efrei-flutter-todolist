@@ -41,27 +41,20 @@ class TodoApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => TodoProvider()),
       ],
-      child: Consumer<AuthProvider>(
-        builder: (context, authProvider, _) {
-          // Gérer les listeners TodoProvider en fonction de l'état d'authentification
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            final todoProvider = Provider.of<TodoProvider>(context, listen: false);
+      child: MaterialApp(
+        title: 'Taskip - EFREI TodoList',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        home: Consumer<AuthProvider>(
+          builder: (context, authProvider, _) {
+            // Si l'utilisateur est connecté, aller au HomeScreen
             if (authProvider.user != null) {
-              // Utilisateur connecté : démarrer les listeners
-              todoProvider.startListening(authProvider.user!);
-            } else {
-              // Utilisateur déconnecté : arrêter les listeners
-              todoProvider.stopListening();
+              return const HomeScreen();
             }
-          });
-
-          return MaterialApp(
-            title: 'Taskip - EFREI TodoList',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,
-            home: authProvider.user != null ? const HomeScreen() : const LandingPage(),
-          );
-        },
+            // Sinon, afficher la landing page
+            return const LandingPage();
+          },
+        ),
       ),
     );
   }
