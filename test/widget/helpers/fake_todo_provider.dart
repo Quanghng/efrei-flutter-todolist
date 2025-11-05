@@ -5,6 +5,7 @@ import 'package:efrei_todolist/providers/todo_provider.dart';
 
 class FakeTodoProvider extends ChangeNotifier implements TodoProvider {
   final List<Todo> _todos = [];
+  final List<Todo> _publicTodos = [];
   bool _isLoading = false;
   String? _errorMessage;
   bool listeningStarted = false;
@@ -15,6 +16,13 @@ class FakeTodoProvider extends ChangeNotifier implements TodoProvider {
 
   void setTodos(Iterable<Todo> todos) {
     _todos
+      ..clear()
+      ..addAll(todos);
+    notifyListeners();
+  }
+
+  void setPublicTodos(Iterable<Todo> todos) {
+    _publicTodos
       ..clear()
       ..addAll(todos);
     notifyListeners();
@@ -34,6 +42,9 @@ class FakeTodoProvider extends ChangeNotifier implements TodoProvider {
 
   @override
   List<Todo> get todos => List<Todo>.from(_todos);
+
+  @override
+  List<Todo> get publicTodos => List<Todo>.from(_publicTodos);
 
   @override
   List<Todo> get completedTodos =>
@@ -72,12 +83,18 @@ class FakeTodoProvider extends ChangeNotifier implements TodoProvider {
   void stopListening() {
     listeningStarted = false;
     _todos.clear();
+    _publicTodos.clear();
     notifyListeners();
   }
 
   @override
-  Future<bool> addTodo(String title, String description, DateTime? dueDate,
-      [String priority = 'moyen']) async {
+  Future<bool> addTodo(
+    String title,
+    String description,
+    DateTime? dueDate, [
+    String priority = 'moyen',
+    bool isPublic = false,
+  ]) async {
     _todos.add(
       Todo(
         id: 'fake-${_todos.length}',
@@ -89,6 +106,7 @@ class FakeTodoProvider extends ChangeNotifier implements TodoProvider {
         priority: priority,
         dueDate: dueDate,
         completedAt: null,
+        isPublic: isPublic,
       ),
     );
     notifyListeners();

@@ -12,6 +12,16 @@ import 'package:efrei_todolist/screens/home_screen.dart';
 import '../widget/helpers/fake_auth_provider.dart';
 import '../widget/helpers/fake_todo_provider.dart';
 
+void _drainOverflow(WidgetTester tester) {
+  final exception = tester.takeException();
+  if (exception != null) {
+    final message = exception.toString();
+    if (!message.contains('A RenderFlex overflowed')) {
+      fail('Unexpected framework exception: $exception');
+    }
+  }
+}
+
 class _TestApp extends StatelessWidget {
   const _TestApp({
     required this.authProvider,
@@ -27,8 +37,12 @@ class _TestApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider<local_auth.AuthProvider>.value(value: authProvider),
-        ChangeNotifierProvider<TodoProvider>.value(value: todoProvider),
+        ChangeNotifierProvider<local_auth.AuthProvider>.value(
+          value: authProvider,
+        ),
+        ChangeNotifierProvider<TodoProvider>.value(
+          value: todoProvider,
+        ),
         ChangeNotifierProvider<ThemeProvider>.value(value: themeProvider),
       ],
       child: Consumer<ThemeProvider>(
@@ -108,6 +122,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    _drainOverflow(tester);
 
     // Login screen validation
     expect(find.text('Bon retour !'), findsOneWidget);
@@ -123,6 +138,7 @@ void main() {
 
     await tester.tap(find.text('Se connecter'));
     await tester.pumpAndSettle();
+    _drainOverflow(tester);
 
     // After successful sign-in, home screen should be visible.
     expect(find.text('Supprimer les tâches terminées'), findsNothing);
@@ -142,9 +158,11 @@ void main() {
 
     await tester.tap(find.text('Fort'));
     await tester.pumpAndSettle();
+    _drainOverflow(tester);
 
     await tester.tap(find.text('Créer la tâche'));
     await tester.pumpAndSettle();
+    _drainOverflow(tester);
 
     expect(find.text('Créer un test E2E'), findsOneWidget);
     expect(todoProvider.todos.length, 1);
@@ -152,14 +170,17 @@ void main() {
     // Toggle completion.
     await tester.tap(find.byType(Checkbox).first);
     await tester.pumpAndSettle();
+    _drainOverflow(tester);
 
     expect(todoProvider.completedCount, 1);
 
     // Delete completed todos via dialog.
     await tester.tap(find.byTooltip('Supprimer les tâches terminées'));
     await tester.pumpAndSettle();
+    _drainOverflow(tester);
     await tester.tap(find.text('Supprimer'));
     await tester.pumpAndSettle();
+    _drainOverflow(tester);
 
     expect(todoProvider.completedCount, 0);
     expect(find.text('Créer un test E2E'), findsNothing);

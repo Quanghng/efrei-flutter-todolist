@@ -3,13 +3,14 @@ import 'package:flutter/foundation.dart';
 
 import 'package:efrei_todolist/providers/auth_provider.dart' as local_auth;
 
-/// Lightweight fake used in widget/integration tests to bypass real Firebase.
+/// Fake substitute for [AuthProvider] used in widget/integration tests.
 class FakeAuthProvider extends ChangeNotifier implements local_auth.AuthProvider {
   bool _isLoading = false;
   String? _errorMessage;
   bool _loggedIn = false;
+  User? _user;
 
-  // Observability helpers for assertions
+  // Observability helpers for assertions.
   String? lastEmail;
   String? lastPassword;
   String? lastSignUpEmail;
@@ -22,7 +23,7 @@ class FakeAuthProvider extends ChangeNotifier implements local_auth.AuthProvider
   String signUpFailureMessage = 'Erreur d\'inscription';
 
   @override
-  User? get user => null;
+  User? get user => _user;
 
   @override
   bool get isAuthenticated => _loggedIn;
@@ -47,9 +48,14 @@ class FakeAuthProvider extends ChangeNotifier implements local_auth.AuthProvider
     }
   }
 
-  void setLoggedIn(bool value) {
+  void _setLoggedIn(bool value) {
     if (_loggedIn != value) {
       _loggedIn = value;
+      if (!value) {
+        _user = null;
+      } else {
+        _user ??= const _FakeUser(uid: 'fake-user');
+      }
       notifyListeners();
     }
   }
@@ -64,10 +70,11 @@ class FakeAuthProvider extends ChangeNotifier implements local_auth.AuthProvider
 
     if (signInShouldSucceed) {
       _setError(null);
-      setLoggedIn(true);
+      _setLoggedIn(true);
       return true;
     }
 
+    _setLoggedIn(false);
     _setError(failureMessage);
     return false;
   }
@@ -83,17 +90,18 @@ class FakeAuthProvider extends ChangeNotifier implements local_auth.AuthProvider
 
     if (signUpShouldSucceed) {
       _setError(null);
-      setLoggedIn(true);
+      _setLoggedIn(true);
       return true;
     }
 
+    _setLoggedIn(false);
     _setError(signUpFailureMessage);
     return false;
   }
 
   @override
   Future<void> signOut() async {
-    setLoggedIn(false);
+    _setLoggedIn(false);
   }
 
   @override
@@ -103,4 +111,14 @@ class FakeAuthProvider extends ChangeNotifier implements local_auth.AuthProvider
   void clearError() {
     _setError(null);
   }
+}
+
+class _FakeUser implements User {
+  const _FakeUser({required this.uid});
+
+  @override
+  final String uid;
+
+  @override
+  noSuchMethod(Invocation invocation) => null;
 }

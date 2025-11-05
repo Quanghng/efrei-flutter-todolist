@@ -1,4 +1,5 @@
 import 'package:efrei_todolist/screens/calendar_screen.dart';
+import 'package:efrei_todolist/screens/landing_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -2461,10 +2462,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            onPressed: () {
+            onPressed: () async {
+              final navigator = Navigator.of(context);
               context.read<TodoProvider>().stopListening();
-              context.read<AuthProvider>().signOut();
-              Navigator.pop(context);
+              await context.read<AuthProvider>().signOut();
+              if (!mounted) return;
+              navigator.pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LandingPage()),
+                (route) => false,
+              );
             },
             child: const Text('Déconnexion'),
           ),
